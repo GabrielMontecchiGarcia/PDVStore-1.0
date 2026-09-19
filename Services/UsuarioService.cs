@@ -126,14 +126,4 @@ namespace PDVStore.Services
             return _context.Set<T>().Find(id);
         }
     }
-}// Services/UsuarioService.cs
-// If the service is generic and calls DbContext.Set<T>()
-// add the required reference-type constraint on T (or replace T with a concrete entity type).
-public class UsuarioService<T> where T : class
-{
-    private readonly DbContext _db;
-    public UsuarioService(DbContext db) => _db = db;
-
-    public DbSet<T> Entities => _db.Set<T>();
-    // ...
 }

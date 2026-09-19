@@ -8,7 +8,7 @@
         public int Quantidade { get; set; }
         public decimal? PrecoUnitario { get; set; }
         public DateTime DataMovimentacao { get; set; } = DateTime.UtcNow;
-        public int UsuarioId { get; set; }
+        public int? UsuarioId { get; set; }
         public string? Motivo { get; set; }
         public int? ReferenciaVendaId { get; set; } // Para saídas automáticas de venda
 

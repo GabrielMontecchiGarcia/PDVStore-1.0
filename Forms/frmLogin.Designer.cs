@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             btnLogin = new Button();
+            btnSair = new Button();
             lblUsuario = new Label();
             lblSenha = new Label();
             txtSenha = new TextBox();
@@ -48,6 +49,16 @@
             btnLogin.Text = "Acessar";
             btnLogin.UseVisualStyleBackColor = true;
             btnLogin.Click += btnLogin_Click;
+            // 
+            // btnSair
+            // 
+            btnSair.Location = new Point(100, 119);
+            btnSair.Name = "btnSair";
+            btnSair.Size = new Size(94, 29);
+            btnSair.TabIndex = 9;
+            btnSair.Text = "Sair";
+            btnSair.UseVisualStyleBackColor = true;
+            btnSair.Click += btnSair_Click;
             // 
             // lblUsuario
             // 
@@ -90,7 +101,7 @@
             linkLabel1.Size = new Size(76, 20);
             linkLabel1.TabIndex = 5;
             linkLabel1.TabStop = true;
-            linkLabel1.Text = "linkLabel1";
+            linkLabel1.Text = "Cadastrar usuário";
             linkLabel1.LinkClicked += linkLabel1_LinkClicked;
             // 
             // linkLabel2
@@ -101,7 +112,7 @@
             linkLabel2.Size = new Size(76, 20);
             linkLabel2.TabIndex = 6;
             linkLabel2.TabStop = true;
-            linkLabel2.Text = "linkLabel2";
+            linkLabel2.Text = "Gerenciar usuários";
             linkLabel2.LinkClicked += linkLabel2_LinkClicked;
             // 
             // linkLabel3
@@ -112,7 +123,7 @@
             linkLabel3.Size = new Size(76, 20);
             linkLabel3.TabIndex = 7;
             linkLabel3.TabStop = true;
-            linkLabel3.Text = "linkLabel3";
+            linkLabel3.Text = "Produtos";
             linkLabel3.LinkClicked += linkLabel3_LinkClicked;
             // 
             // linkLabel4
@@ -123,7 +134,7 @@
             linkLabel4.Size = new Size(76, 20);
             linkLabel4.TabIndex = 8;
             linkLabel4.TabStop = true;
-            linkLabel4.Text = "linkLabel4";
+            linkLabel4.Text = "Estoque";
             linkLabel4.LinkClicked += linkLabel4_LinkClicked;
             // 
             // frmLogin
@@ -140,6 +151,7 @@
             Controls.Add(lblSenha);
             Controls.Add(lblUsuario);
             Controls.Add(btnLogin);
+            Controls.Add(btnSair);
             Name = "frmLogin";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "PDV Store - Login";
@@ -150,9 +162,9 @@
         #endregion
 
         private Button btnLogin;
+        private Button btnSair;
         private Label lblUsuario;
         private Label lblSenha;
-        private TextBox textBox1;
         private TextBox txtSenha;
         private TextBox txtUsuario;
         private LinkLabel linkLabel1;

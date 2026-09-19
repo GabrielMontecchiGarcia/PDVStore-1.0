@@ -2,12 +2,8 @@
 using PDVStore.Services;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace PDVStore.Forms
@@ -16,68 +12,62 @@ namespace PDVStore.Forms
     {
         private readonly EstoqueService _estoqueService;
         private Produto? _produtoSelecionado;
-        public frmEstoque()
+
+        public frmEstoque(EstoqueService estoqueService)
         {
+            _estoqueService = estoqueService ?? throw new ArgumentNullException(nameof(estoqueService));
             InitializeComponent();
             ConfigurarFormulario();
-            CarregarProdutos();
         }
 
-        private void CarregarProdutos()
+        private async void Form_Load(object? sender, EventArgs e)
+        {
+            await CarregarProdutosAsync();
+        }
+
+        private async Task CarregarProdutosAsync(string filtro = "")
         {
             try
             {
-                // var produtos = await _estoqueService.ListarProdutosAsync();
-                // dgvProdutos.DataSource = produtos.ToList();
+                var produtos = string.IsNullOrWhiteSpace(filtro)
+                    ? await _estoqueService.GetAllAsync()
+                    : await _estoqueService.BuscarAsync(filtro);
 
-                // Simulação temporária
-                dgvProdutos.DataSource = new List<Produto>
-                {
-                    new Produto { Id = 1, CodigoBarras = "789123456", Nome = "Arroz Tipo 1 - 5kg", Preco = 24.90m, EstoqueAtual = 45, Categoria = "Alimentos Básicos" },
-                    new Produto { Id = 2, CodigoBarras = "789654321", Nome = "Feijão Carioca 1kg", Preco = 8.50m, EstoqueAtual = 120, Categoria = "Alimentos Básicos" },
-                    new Produto { Id = 3, CodigoBarras = "789987654", Nome = "Óleo de Soja 900ml", Preco = 7.99m, EstoqueAtual = 80, Categoria = "Óleos" }
-                };
+                dgvProdutos.DataSource = produtos.ToList();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erro ao carregar estoque: " + ex.Message);
-            }
-        }
-
-        private void DgvProdutos_SelectionChanged(object? sender, EventArgs e)
-        {
-            if (dgvProdutos.CurrentRow?.DataBoundItem is Produto produto)
-            {
-                _produtoSelecionado = produto;
-                lblProdutoSelecionado.Text = $"Produto Selecionado: {produto.Nome} (Estoque: {produto.EstoqueAtual})";
+                MessageBox.Show("Erro ao carregar estoque: " + ex.Message, "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         private void ConfigurarFormulario()
         {
             this.Text = "Gestão de Estoque - Entrada / Saída";
-            this.WindowState = FormWindowState.Maximized;
+            this.StartPosition = FormStartPosition.CenterScreen;
 
-            cmbTipoMovimento.Items.AddRange(new string[] { "Entrada", "Saída" });
+            Load += Form_Load;
+
+            if (cmbTipoMovimento.Items.Count == 0)
+                cmbTipoMovimento.Items.AddRange(new string[] { "Entrada", "Saída" });
             cmbTipoMovimento.SelectedIndex = 0;
 
             dgvProdutos.AutoGenerateColumns = false;
-            dgvProdutos.SelectionChanged += dgvProdutos_SelectionChanged;
 
-            // Configurar colunas do Grid
-            dgvProdutos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Id", HeaderText = "ID", DataPropertyName = "Id", Width = 70 });
-            dgvProdutos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Codigo", HeaderText = "Código", DataPropertyName = "CodigoBarras", Width = 130 });
-            dgvProdutos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Nome", HeaderText = "Produto", DataPropertyName = "Nome", Width = 350 });
-            dgvProdutos.Columns.Add(new DataGridViewTextBoxColumn { Name = "EstoqueAtual", HeaderText = "Estoque Atual", DataPropertyName = "EstoqueAtual", Width = 120 });
-            dgvProdutos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Preco", HeaderText = "Preço", DataPropertyName = "Preco", DefaultCellStyle = new DataGridViewCellStyle { Format = "C2" } });
+            // Evita duplicar colunas se a configuração rodar mais de uma vez
+            if (dgvProdutos.Columns.Count == 0)
+            {
+                dgvProdutos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Id", HeaderText = "ID", DataPropertyName = "Id", Width = 70 });
+                dgvProdutos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Codigo", HeaderText = "Código", DataPropertyName = "CodigoBarras", Width = 130 });
+                dgvProdutos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Nome", HeaderText = "Produto", DataPropertyName = "Nome", Width = 280 });
+                dgvProdutos.Columns.Add(new DataGridViewTextBoxColumn { Name = "EstoqueAtual", HeaderText = "Estoque Atual", DataPropertyName = "EstoqueAtual", Width = 120 });
+                dgvProdutos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Preco", HeaderText = "Preço", DataPropertyName = "Preco", DefaultCellStyle = new DataGridViewCellStyle { Format = "C2" } });
+            }
         }
 
-        private void btnBuscar_Click(object sender, EventArgs e)
+        private async void btnBuscar_Click(object sender, EventArgs e)
         {
-            // Implementar filtro
-            string filtro = txtBuscar.Text.Trim().ToUpper();
-            // Filtrar grid (lógica futura)
-            MessageBox.Show("Filtro aplicado: " + filtro);
+            await CarregarProdutosAsync(txtBuscar.Text.Trim());
         }
 
         private void cmbTipoMovimento_SelectedIndexChanged(object sender, EventArgs e)
@@ -116,23 +106,29 @@ namespace PDVStore.Forms
             try
             {
                 bool sucesso;
-
                 if (tipo == "Entrada")
                 {
-                    sucesso = await _estoqueService.AdicionarEstoqueAsync(_produtoSelecionado.Id, quantidade);
-                    MessageBox.Show($"{quantidade} unidades adicionadas ao estoque com sucesso!", "Entrada Confirmada", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    sucesso = await _estoqueService.AdicionarEstoqueAsync(_produtoSelecionado.Id, quantidade,
+                        string.IsNullOrWhiteSpace(motivo) ? "Entrada manual" : motivo);
                 }
-                else // Saída
+                else
                 {
-                    sucesso = await _estoqueService.BaixarEstoqueAsync(_produtoSelecionado.Id, quantidade);
-                    MessageBox.Show($"{quantidade} unidades removidas do estoque com sucesso!", "Saída Confirmada", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    sucesso = await _estoqueService.BaixarEstoqueAsync(_produtoSelecionado.Id, quantidade,
+                        string.IsNullOrWhiteSpace(motivo) ? "Saída manual" : motivo);
                 }
 
                 if (sucesso)
                 {
-                    CarregarProdutos();
+                    MessageBox.Show($"{quantidade} unidade(s) de {tipo} realizada com sucesso!", $"{tipo} Confirmada",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    await CarregarProdutosAsync(txtBuscar.Text.Trim());
                     txtQuantidade.Clear();
                     txtMotivo.Clear();
+                }
+                else
+                {
+                    MessageBox.Show("Não foi possível realizar o movimento. Verifique a quantidade disponível.",
+                        "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
             catch (Exception ex)

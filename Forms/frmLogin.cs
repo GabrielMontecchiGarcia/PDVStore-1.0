@@ -1,13 +1,7 @@
-﻿using iText.StyledXmlParser.Jsoup.Nodes;
-using Microsoft.Extensions.DependencyInjection;
-using PDVStore.Data;
+﻿using Microsoft.Extensions.DependencyInjection;
 using PDVStore.Models;
+using PDVStore.Services;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Text;
 using System.Windows.Forms;
 
 namespace PDVStore.Forms
@@ -15,57 +9,107 @@ namespace PDVStore.Forms
     public partial class frmLogin : Form
     {
         private readonly IServiceProvider _serviceProvider;
+        private readonly UsuarioService _usuarioService;
+        private IServiceScope? _sessionScope;
 
-        public frmLogin(IServiceProvider serviceProvider)
+        public frmLogin(IServiceProvider serviceProvider, UsuarioService usuarioService)
         {
             InitializeComponent();
             _serviceProvider = serviceProvider;
+            _usuarioService = usuarioService;
         }
 
-        private void btnLogin_Click(object sender, EventArgs e)
+        private async void btnLogin_Click(object sender, EventArgs e)
         {
-            // Create a scope to resolve the DbContext (registered as scoped by AddDbContext)
-            using var scope = _serviceProvider.CreateScope();
-            var context = scope.ServiceProvider.GetRequiredService<PDVContext>();
+            var nome = txtUsuario.Text.Trim();
+            var senha = txtSenha.Text;
 
-            var user = context.UsuarioCaixa.FirstOrDefault(u => u.Nome == txtUsuario.Text);
-            if (user != null && user.Autenticar(txtSenha.Text))
+            if (string.IsNullOrWhiteSpace(nome) || string.IsNullOrWhiteSpace(senha))
             {
-                // Store authenticated user in session so other forms can access the Id
-                Session.CurrentUser = user;
+                MessageBox.Show("Informe usuário e senha.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
-                var frmMenu = _serviceProvider.GetService<frmMenuPrincipal>();
+            btnLogin.Enabled = false;
+            Cursor = Cursors.WaitCursor;
+
+            try
+            {
+                var usuario = await _usuarioService.AutenticarAsync(nome, senha);
+
+                if (usuario == null)
+                {
+                    MessageBox.Show("Credenciais inválidas!", "Login", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                if (!usuario.Ativo)
+                {
+                    MessageBox.Show("Usuário inativo. Contate o administrador.", "Login", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Mantém um escopo vivo enquanto o usuário estiver logado,
+                // para que as telas resolvidas via DI compartilhem o mesmo PDVContext.
+                Session.CurrentUser = usuario;
+
+                _sessionScope?.Dispose();
+                _sessionScope = _serviceProvider.CreateScope();
+
+                var frmMenu = _sessionScope.ServiceProvider.GetRequiredService<frmMenuPrincipal>();
+                frmMenu.FormClosed += (_, _) =>
+                {
+                    _sessionScope?.Dispose();
+                    _sessionScope = null;
+                };
+
                 frmMenu.Show();
                 this.Hide();
             }
-            else
+            catch (Exception ex)
             {
-                MessageBox.Show("Credenciais inválidas!");
+                MessageBox.Show($"Erro ao realizar login: {ex.Message}", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+            finally
+            {
+                btnLogin.Enabled = true;
+                Cursor = Cursors.Default;
+            }
+        }
+
+        private void btnSair_Click(object sender, EventArgs e)
+        {
+            Application.Exit();
         }
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            frmCadastroUsuario frmCadastro = _serviceProvider.GetService<frmCadastroUsuario>();
-            frmCadastro.Show();
+            using var scope = _serviceProvider.CreateScope();
+            using var frmCadastro = new frmCadastroUsuario(scope.ServiceProvider.GetRequiredService<Data.PDVContext>());
+            frmCadastro.ShowDialog();
         }
 
         private void linkLabel2_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            frmGerenciarUsuarios frmGerenciar = _serviceProvider.GetService<frmGerenciarUsuarios>();
-            frmGerenciar.Show();
+            using var scope = _serviceProvider.CreateScope();
+            using var frmGereciar = new frmGerenciarUsuarios(
+                scope.ServiceProvider.GetRequiredService<Data.PDVContext>(),
+                scope.ServiceProvider);
+            frmGereciar.ShowDialog();
         }
 
         private void linkLabel3_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            frmGerenciarProdutos frmGerenciarProdutos = _serviceProvider.GetService<frmGerenciarProdutos>();
-            frmGerenciarProdutos.Show();
+            using var scope = _serviceProvider.CreateScope();
+            using var frmProdutos = new frmGerenciarProdutos(scope.ServiceProvider.GetRequiredService<Services.EstoqueService>());
+            frmProdutos.ShowDialog();
         }
 
         private void linkLabel4_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            frmEstoque frmEstoque = _serviceProvider.GetService<frmEstoque>();
-            frmEstoque.Show();
+            using var scope = _serviceProvider.CreateScope();
+            using var frmEstoque = new frmEstoque(scope.ServiceProvider.GetRequiredService<Services.EstoqueService>());
+            frmEstoque.ShowDialog();
         }
     }
 }

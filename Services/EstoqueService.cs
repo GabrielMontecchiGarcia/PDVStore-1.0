@@ -13,14 +13,32 @@ namespace PDVStore.Services
             _context = context;
         }
 
-        public async Task<List<Produto>> GetAllAsync()
+        public async Task<List<Produto>> GetAllAsync(bool apenasAtivos = true)
         {
-            return await _context.Produtos.AsNoTracking().ToListAsync();
+            var query = _context.Produtos.AsNoTracking();
+            if (apenasAtivos)
+                query = query.Where(p => p.Ativo);
+            return await query.OrderBy(p => p.Nome).ToListAsync();
         }
 
         public async Task<Produto?> GetByIdAsync(int id)
         {
             return await _context.Produtos.FindAsync(id);
+        }
+
+        public async Task<List<Produto>> BuscarAsync(string filtro)
+        {
+            var termo = filtro.Trim();
+            if (string.IsNullOrEmpty(termo))
+                return await GetAllAsync();
+
+            return await _context.Produtos
+                .AsNoTracking()
+                .Where(p => p.Ativo &&
+                            (p.Nome.Contains(termo) ||
+                             (p.CodigoBarras != null && p.CodigoBarras.Contains(termo))))
+                .OrderBy(p => p.Nome)
+                .ToListAsync();
         }
 
         public async Task AddAsync(Produto produto)
@@ -40,12 +58,13 @@ namespace PDVStore.Services
             var p = await _context.Produtos.FindAsync(id);
             if (p != null)
             {
-                _context.Produtos.Remove(p);
+                p.Ativo = false; // soft delete
                 await _context.SaveChangesAsync();
             }
         }
 
-        public async Task<bool> BaixarEstoqueAsync(int produtoId, int quantidade)
+        /// <summary>Baixa estoque e registra a movimentação de saída (uso em ajuste manual).</summary>
+        public async Task<bool> BaixarEstoqueAsync(int produtoId, int quantidade, string? motivo = null)
         {
             if (quantidade <= 0)
                 throw new ArgumentException("Quantidade deve ser maior que zero.", nameof(quantidade));
@@ -58,11 +77,21 @@ namespace PDVStore.Services
                 return false; // insufficient stock
 
             produto.Estoque -= quantidade;
+            _context.MovimentacoesEstoque.Add(new MovimentacaoEstoque
+            {
+                ProdutoId = produtoId,
+                Tipo = "Saída",
+                Quantidade = quantidade,
+                DataMovimentacao = DateTime.UtcNow,
+                UsuarioId = Session.CurrentUser?.Id,
+                Motivo = motivo
+            });
             await _context.SaveChangesAsync();
             return true;
         }
 
-        public async Task<bool> AdicionarEstoqueAsync(int produtoId, int quantidade)
+        /// <summary>Adiciona estoque e registra a movimentação de entrada (uso em ajuste manual).</summary>
+        public async Task<bool> AdicionarEstoqueAsync(int produtoId, int quantidade, string? motivo = null)
         {
             if (quantidade <= 0)
                 throw new ArgumentException("Quantidade deve ser maior que zero.", nameof(quantidade));
@@ -72,13 +101,24 @@ namespace PDVStore.Services
                 return false;
 
             produto.Estoque += quantidade;
+            _context.MovimentacoesEstoque.Add(new MovimentacaoEstoque
+            {
+                ProdutoId = produtoId,
+                Tipo = "Entrada",
+                Quantidade = quantidade,
+                DataMovimentacao = DateTime.UtcNow,
+                UsuarioId = Session.CurrentUser?.Id,
+                Motivo = motivo
+            });
             await _context.SaveChangesAsync();
             return true;
         }
-        public async Task<bool> RegistrarMovimentacaoAsync(MovimentacaoEstoque movimentacao)
+
+        public async Task<Produto?> GetByCodigoBarrasAsync(string codigoBarras)
         {
-            object value = _context.MovimentacoesEstoque.Add(movimentacao);
-            return await _context.SaveChangesAsync() > 0;
+            return await _context.Produtos
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.CodigoBarras == codigoBarras && p.Ativo);
         }
 
         public async Task<List<MovimentacaoEstoque>> ObterHistoricoMovimentacoesAsync(DateTime? inicio = null, DateTime? fim = null)
@@ -86,6 +126,7 @@ namespace PDVStore.Services
             var query = _context.MovimentacoesEstoque
                 .Include(m => m.Produto)
                 .Include(m => m.Usuario)
+                .AsNoTracking()
                 .AsQueryable();
 
             if (inicio.HasValue) query = query.Where(m => m.DataMovimentacao >= inicio);

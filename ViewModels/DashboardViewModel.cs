@@ -1,29 +1,48 @@
 ﻿using PDVStore.Services;
 using PDVStore.Models;
+using PDVLoja.Services;
 using System.Collections.ObjectModel;
 
 namespace PDVStore.ViewModels
 {
     public class DashboardViewModel
     {
-        private readonly RelatorioService _service;
+        private readonly RelatorioService _relatorioService;
+        private readonly VendaService _vendaService;
+
         public ObservableCollection<ItemRelatorio> ItensMaisVendidos { get; } = new ObservableCollection<ItemRelatorio>();
         public ObservableCollection<Produto> AlertasEstoque { get; } = new ObservableCollection<Produto>();
 
-        public DashboardViewModel(RelatorioService service)
+        public decimal TotalPeriodo { get; private set; }
+        public int QuantidadeVendas { get; private set; }
+        public Dictionary<string, (int Quantidade, decimal Total)> PagamentosPorForma { get; } = new();
+
+        public DashboardViewModel(RelatorioService relatorioService, VendaService vendaService)
         {
-            _service = service;
+            _relatorioService = relatorioService;
+            _vendaService = vendaService;
         }
 
-        public void CarregarDados()
+        public async Task CarregarDadosAsync(DateTime inicio, DateTime fim)
         {
             ItensMaisVendidos.Clear();
-            var itens = _service.GerarRelatorioItensMaisVendidos(DateTime.Now.AddMonths(-1), DateTime.Now);
-            foreach (var item in itens) ItensMaisVendidos.Add(item);
-
             AlertasEstoque.Clear();
-            var alertas = _service.GerarRelatorioEstoqueMinimo();
-            foreach (var p in alertas) AlertasEstoque.Add(p);
+            PagamentosPorForma.Clear();
+
+            foreach (var item in _relatorioService.GerarRelatorioItensMaisVendidos(inicio, fim))
+                ItensMaisVendidos.Add(item);
+
+            foreach (var p in _relatorioService.GerarRelatorioEstoqueMinimo())
+                AlertasEstoque.Add(p);
+
+            TotalPeriodo = await _vendaService.CalcularTotalVendasAsync(inicio, fim);
+            QuantidadeVendas = await _vendaService.ContarVendasAsync(inicio, fim);
+
+            var vendas = await _vendaService.RelatorioVendasPorFormaPagamentoAsync(inicio, fim);
+            foreach (var grupo in vendas.GroupBy(v => v.FormaPagamento))
+            {
+                PagamentosPorForma[grupo.Key] = (grupo.Count(), grupo.Sum(v => v.ValorTotal));
+            }
         }
     }
 }
