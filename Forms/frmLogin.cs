@@ -81,35 +81,5 @@ namespace PDVStore.Forms
         {
             Application.Exit();
         }
-
-        private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
-        {
-            using var scope = _serviceProvider.CreateScope();
-            using var frmCadastro = new frmCadastroUsuario(scope.ServiceProvider.GetRequiredService<Data.PDVContext>());
-            frmCadastro.ShowDialog();
-        }
-
-        private void linkLabel2_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
-        {
-            using var scope = _serviceProvider.CreateScope();
-            using var frmGereciar = new frmGerenciarUsuarios(
-                scope.ServiceProvider.GetRequiredService<Data.PDVContext>(),
-                scope.ServiceProvider);
-            frmGereciar.ShowDialog();
-        }
-
-        private void linkLabel3_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
-        {
-            using var scope = _serviceProvider.CreateScope();
-            using var frmProdutos = new frmGerenciarProdutos(scope.ServiceProvider.GetRequiredService<Services.EstoqueService>());
-            frmProdutos.ShowDialog();
-        }
-
-        private void linkLabel4_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
-        {
-            using var scope = _serviceProvider.CreateScope();
-            using var frmEstoque = new frmEstoque(scope.ServiceProvider.GetRequiredService<Services.EstoqueService>());
-            frmEstoque.ShowDialog();
-        }
     }
 }

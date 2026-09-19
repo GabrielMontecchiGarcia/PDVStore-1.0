@@ -42,6 +42,7 @@ namespace PDVStore.Forms
             {
                 Name = "Foto",
                 HeaderText = "Foto",
+                DataPropertyName = "Foto",
                 Width = 80,
                 ImageLayout = DataGridViewImageCellLayout.Zoom,   // Mantém proporção
                 DefaultCellStyle = { NullValue = Properties.Resources.user_default }

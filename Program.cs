@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Windows.Forms;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -9,7 +8,6 @@ using PDVLoja.Services;
 using PDVStore.Data;
 using PDVStore.Forms;
 using PDVStore.Integrations;
-using PDVStore.Models;
 using PDVStore.Services;
 using PDVStore.ViewModels;
 using Serilog;
@@ -48,19 +46,37 @@ namespace PDVStore
 
                 using IHost host = CreateHostBuilder(Array.Empty<string>()).Build();
 
-                // Aplica migrações pendentes e garante um administrador em bootstrap
-                using (var scope = host.Services.CreateScope())
+                // Splash: verifica configuração, conexão, migrações e o acesso
+                // administrativo antes de liberar o login.
+                frmLogin? loginForm = null;
+                IServiceScope? loginScope = null;
+
+                using (var splashScope = host.Services.CreateScope())
                 {
-                    var db = scope.ServiceProvider.GetRequiredService<PDVContext>();
-                    db.Database.Migrate();
-                    GarantirAdministradorInicial(db);
+                    var splash = splashScope.ServiceProvider.GetRequiredService<frmSplash>();
+                    splash.VerificacaoConcluida += (_, ok) =>
+                    {
+                        if (ok)
+                        {
+                            // Cada login cria o próprio escopo, mantendo um
+                            // PDVContext por sessão.
+                            loginScope = host.Services.CreateScope();
+                            loginForm = loginScope.ServiceProvider.GetRequiredService<frmLogin>();
+                        }
+                        else
+                        {
+                            // Falha já é exibida na própria splash.
+                            Log.Warning("Verificação do sistema falhou: {Falha}", splash.UltimaFalha);
+                        }
+                    };
+
+                    Application.Run(splash);
                 }
 
-                // Cada login cria o próprio escopo, mantendo um PDVContext por sessão.
-                using (var scope = host.Services.CreateScope())
+                if (loginForm != null)
                 {
-                    var loginForm = scope.ServiceProvider.GetRequiredService<frmLogin>();
                     Application.Run(loginForm);
+                    loginScope?.Dispose();
                 }
             }
             catch (Exception ex)
@@ -75,37 +91,6 @@ namespace PDVStore
             }
         }
 
-        /// <summary>
-        /// Garante que existe um administrador ativo e que sua senha inicial
-        /// (admin123) esteja com hash bcrypt válido.
-        /// </summary>
-        private static void GarantirAdministradorInicial(PDVContext db)
-        {
-            var admin = db.Usuarios.FirstOrDefault(u => u.Permissao == TipoPermissao.Administrador && u.GetAtivo())
-                ?? db.Usuarios.FirstOrDefault();
-
-            if (admin == null)
-            {
-                admin = new UsuarioCaixa
-                {
-                    Nome = "Admn",
-                    Permissao = TipoPermissao.Administrador
-                };
-                admin.SetSenha("admin123");
-                db.Usuarios.Add(admin);
-                Log.Information("Administrador inicial criado em bootstrap.");
-            }
-            else if (!BCrypt.Net.BCrypt.Verify("admin123", admin.SenhaHash ?? ""))
-            {
-                admin.SetSenha("admin123");
-                admin.Permissao = TipoPermissao.Administrador;
-                admin.SetAtivo(true);
-                Log.Warning("Hash de senha inválido detectado. Senha restaurada para admin123 (usuário {Nome}).", admin.Nome);
-            }
-
-            db.SaveChanges();
-        }
-
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
                 .ConfigureServices((context, services) =>
@@ -118,6 +103,7 @@ namespace PDVStore
                     );
 
                     // ---- Services ----
+                    services.AddTransient<VerificacaoSistemaService>();
                     services.AddTransient<UsuarioService>();
                     services.AddTransient<EstoqueService>();
                     services.AddTransient<PagamentoIntegrator>();
@@ -130,6 +116,7 @@ namespace PDVStore
                     services.AddTransient<DashboardViewModel>();
 
                     // ---- Forms ----
+                    services.AddTransient<frmSplash>();
                     services.AddTransient<frmLogin>();
                     services.AddTransient<frmMenuPrincipal>();
                     services.AddTransient<frmPDV>();

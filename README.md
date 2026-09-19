@@ -76,6 +76,17 @@ No primeiro acesso, **troque a senha** pelo menu **Usuários**. No bootstrap, se
 
 ## Fluxo de operação
 
+### 0. Inicialização (verificação)
+
+Ao abrir o sistema, a tela **Splash** executa automaticamente a verificação pré-login:
+
+1. **Configuração** — valida a connection string.
+2. **Conexão** — testa o acesso ao banco (LocalDB).
+3. **Migrações** — aplica qualquer migração pendente.
+4. **Acesso administrativo** — garante que existe um administrador ativo com hash de senha válido.
+
+Se tudo passar, abre a tela de **login**. Se qualquer etapa falhar, o erro é exibido e a aplicação é encerrada (verifique `logs/pdvstore-*.log`).
+
 ### 1. Login
 
 - Informe usuário e senha (acesso padrão: `Admin` / `admin123`).

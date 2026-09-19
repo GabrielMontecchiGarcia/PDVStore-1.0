@@ -53,7 +53,7 @@ namespace PDVStore.Services
             var query = _context.Usuarios.AsNoTracking();
 
             if (apenasAtivos)
-                query = query.Where(u => u.GetAtivo());
+                query = query.Where(u => u.Ativo);
 
             return await query.ToListAsync();
         }
