@@ -1,3 +1,4 @@
+using PDVStore.Helpers;
 using PDVStore.Models;
 using PDVStore.Services;
 using System;
@@ -21,8 +22,10 @@ namespace PDVStore.Forms
         private TextBox txtLimite = null!;
         private Button btnSalvar = null!;
         private Button btnNovo = null!;
+        private Button btnEditar = null!;
         private Button btnDesativar = null!;
         private Button btnReceber = null!;
+        private bool _mascaraAplicando;
 
         public frmClientes(ClienteService clienteService)
         {
@@ -35,7 +38,7 @@ namespace PDVStore.Forms
         {
             Text = "Clientes (Fiado / Caderneta)";
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(1000, 520);
+            ClientSize = new Size(1200, 600);
             Font = new Font("Segoe UI", 10F);
             BackColor = Color.White;
 
@@ -47,10 +50,12 @@ namespace PDVStore.Forms
 
             Controls.Add(new Label { Text = "CPF/CNPJ:", Location = new Point(15, y += dy), AutoSize = true });
             txtCpfCnpj = new TextBox { Location = new Point(130, y - 4), Size = new Size(180, 26) };
+            txtCpfCnpj.TextChanged += TxtCpfCnpj_TextChanged;
             Controls.Add(txtCpfCnpj);
 
             Controls.Add(new Label { Text = "Telefone:", Location = new Point(430, y), AutoSize = true });
             txtTelefone = new TextBox { Location = new Point(540, y - 4), Size = new Size(180, 26) };
+            txtTelefone.TextChanged += TxtTelefone_TextChanged;
             Controls.Add(txtTelefone);
 
             Controls.Add(new Label { Text = "E-mail:", Location = new Point(15, y += dy), AutoSize = true });
@@ -67,20 +72,28 @@ namespace PDVStore.Forms
 
             btnSalvar = new Button { Text = "Salvar", Location = new Point(150, y + 36), Size = new Size(110, 32), BackColor = Color.ForestGreen, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnNovo = new Button { Text = "Novo", Location = new Point(270, y + 36), Size = new Size(90, 32), FlatStyle = FlatStyle.Flat };
+            btnEditar = new Button { Text = "Editar", Location = new Point(620, y + 36), Size = new Size(90, 32), FlatStyle = FlatStyle.Flat };
             btnDesativar = new Button { Text = "Desativar", Location = new Point(370, y + 36), Size = new Size(100, 32), BackColor = Color.Firebrick, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnReceber = new Button { Text = "Receber débito", Location = new Point(480, y + 36), Size = new Size(130, 32), BackColor = Color.DarkOrange, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
 
+            var btnExportarPdf = new Button { Text = "Exportar PDF", Location = new Point(730, y + 36), Size = new Size(120, 32), FlatStyle = FlatStyle.Flat };
+            var btnExportarExcel = new Button { Text = "Exportar Excel", Location = new Point(850, y + 36), Size = new Size(120, 32), FlatStyle = FlatStyle.Flat };
+
             btnSalvar.Click += async (_, _) => await SalvarAsync();
             btnNovo.Click += (_, _) => LimparCampos();
+            btnEditar.Click += EditarCliente;
             btnDesativar.Click += async (_, _) => await DesativarAsync();
             btnReceber.Click += async (_, _) => await ReceberAsync();
+            btnExportarPdf.Click += (_, _) => ExportadorService.ExportarPdf(dgvClientes, "Clientes", $"Clientes_{DateTime.Now:yyyyMMdd_HHmm}.pdf");
+            btnExportarExcel.Click += (_, _) => ExportadorService.ExportarExcel(dgvClientes, "Clientes", $"Clientes_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
 
-            Controls.AddRange(new Control[] { btnSalvar, btnNovo, btnDesativar, btnReceber });
+            Controls.AddRange(new Control[] { btnSalvar, btnNovo, btnEditar, btnDesativar, btnReceber, btnExportarPdf, btnExportarExcel });
 
             dgvClientes = new DataGridView
             {
                 Location = new Point(15, 280),
-                Size = new Size(970, 220),
+                Size = new Size(1170, 310),
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
                 ReadOnly = true,
                 AllowUserToAddRows = false,
                 AutoGenerateColumns = false,
@@ -90,8 +103,11 @@ namespace PDVStore.Forms
             dgvClientes.Columns.Add(new DataGridViewTextBoxColumn { Name = "Nome", HeaderText = "Nome", DataPropertyName = "Nome", Width = 220 });
             dgvClientes.Columns.Add(new DataGridViewTextBoxColumn { Name = "Doc", HeaderText = "CPF/CNPJ", DataPropertyName = "CpfCnpj", Width = 130 });
             dgvClientes.Columns.Add(new DataGridViewTextBoxColumn { Name = "Tel", HeaderText = "Telefone", DataPropertyName = "Telefone", Width = 120 });
+            dgvClientes.Columns.Add(new DataGridViewTextBoxColumn { Name = "Email", HeaderText = "E-mail", DataPropertyName = "Email", Width = 210 });
             dgvClientes.Columns.Add(new DataGridViewTextBoxColumn { Name = "Limite", HeaderText = "Limite", DataPropertyName = "LimiteCredito", DefaultCellStyle = new DataGridViewCellStyle { Format = "C2" } });
             dgvClientes.Columns.Add(new DataGridViewTextBoxColumn { Name = "Saldo", HeaderText = "Saldo Devedor", DataPropertyName = "SaldoDevedor", DefaultCellStyle = new DataGridViewCellStyle { Format = "C2" } });
+            foreach (DataGridViewColumn c in dgvClientes.Columns) c.FillWeight = Math.Max(50, c.Width);
+            dgvClientes.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             dgvClientes.SelectionChanged += (_, _) => SelecionarCliente();
             Controls.Add(dgvClientes);
         }
@@ -121,11 +137,37 @@ namespace PDVStore.Forms
         private void PreencherCampos(Cliente c)
         {
             txtNome.Text = c.Nome;
-            txtCpfCnpj.Text = c.CpfCnpj;
-            txtTelefone.Text = c.Telefone;
+            txtCpfCnpj.Text = Mascaras.FormatarCpfCnpj(c.CpfCnpj);
+            txtTelefone.Text = Mascaras.FormatarTelefone(c.Telefone);
             txtEmail.Text = c.Email;
             txtEndereco.Text = c.Endereco;
             txtLimite.Text = c.LimiteCredito.ToString("0.00");
+        }
+
+        private void TxtCpfCnpj_TextChanged(object? sender, EventArgs e) => AplicarMascara(txtCpfCnpj, Mascaras.FormatarCpfCnpj);
+
+        private void TxtTelefone_TextChanged(object? sender, EventArgs e) => AplicarMascara(txtTelefone, Mascaras.FormatarTelefone);
+
+        private void AplicarMascara(TextBox txt, Func<string?, string> formatar)
+        {
+            if (_mascaraAplicando) return;
+            _mascaraAplicando = true;
+            txt.Text = formatar(txt.Text);
+            txt.SelectionStart = txt.Text.Length;
+            _mascaraAplicando = false;
+        }
+
+        private void EditarCliente(object? sender, EventArgs e)
+        {
+            if (dgvClientes.CurrentRow?.DataBoundItem is not Cliente c)
+            {
+                MessageBox.Show("Selecione um cliente para editar.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            _clienteSelecionado = c;
+            PreencherCampos(c);
+            txtNome.Focus();
         }
 
         private async Task SalvarAsync()
@@ -136,12 +178,34 @@ namespace PDVStore.Forms
                 return;
             }
 
+            var digitosDoc = Mascaras.SomenteDigitos(txtCpfCnpj.Text);
+            bool documentoValido = digitosDoc.Length == 11 ? Mascaras.ValidarCpf(digitosDoc)
+                               : digitosDoc.Length == 14 ? Mascaras.ValidarCnpj(digitosDoc)
+                               : false;
+            if (!documentoValido)
+            {
+                MessageBox.Show("Informe um CPF ou CNPJ válido.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (Mascaras.SomenteDigitos(txtTelefone.Text).Length < 10)
+            {
+                MessageBox.Show("Informe um telefone válido com DDD (mínimo 10 dígitos).", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (!Mascaras.ValidarEmail(txtEmail.Text))
+            {
+                MessageBox.Show("Informe um e-mail válido.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             try
             {
                 var cliente = _clienteSelecionado ?? new Cliente { Ativo = true };
                 cliente.Nome = txtNome.Text.Trim();
-                cliente.CpfCnpj = txtCpfCnpj.Text.Trim();
-                cliente.Telefone = txtTelefone.Text.Trim();
+                cliente.CpfCnpj = Mascaras.FormatarCpfCnpj(txtCpfCnpj.Text);
+                cliente.Telefone = Mascaras.FormatarTelefone(txtTelefone.Text);
                 cliente.Email = txtEmail.Text.Trim();
                 cliente.Endereco = txtEndereco.Text.Trim();
                 cliente.LimiteCredito = decimal.TryParse(txtLimite.Text, out decimal limite) ? limite : 0;

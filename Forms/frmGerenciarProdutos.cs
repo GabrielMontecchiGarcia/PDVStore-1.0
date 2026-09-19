@@ -39,12 +39,12 @@ namespace PDVStore.Forms
         {
             Text = "Gerenciar Produtos";
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(1150, 500);
+            ClientSize = new Size(1180, 560);
             Font = new Font("Segoe UI", 10F);
             BackColor = Color.White;
 
-            dgvProdutos = new DataGridView { Location = new Point(500, 20), Size = new Size(620, 330), ReadOnly = true, AllowUserToAddRows = false, AutoGenerateColumns = false };
-            btnRefresh = new Button { Text = "Refresh", Location = new Point(1045, 356), Size = new Size(75, 28) };
+            dgvProdutos = new DataGridView { Location = new Point(500, 20), Size = new Size(660, 460), Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right, ReadOnly = true, AllowUserToAddRows = false, AutoGenerateColumns = false };
+            btnRefresh = new Button { Text = "Refresh", Location = new Point(1045, 492), Size = new Size(75, 28) };
 
             int y = 16;
             int dy = 47;
@@ -69,7 +69,10 @@ namespace PDVStore.Forms
             btnSalvar = new Button { Text = "Salvar", Location = new Point(140, y + 70), Size = new Size(100, 30), BackColor = Color.ForestGreen, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnNovo = new Button { Text = "Novo", Location = new Point(250, y + 70), Size = new Size(90, 30), FlatStyle = FlatStyle.Flat };
             btnExcluir = new Button { Text = "Excluir", Location = new Point(350, y + 70), Size = new Size(90, 30), BackColor = Color.Firebrick, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnAtualizarEstoque = new Button { Text = "Estoque", Location = new Point(450, y + 70), Size = new Size(90, 30), FlatStyle = FlatStyle.Flat };
+            btnAtualizarEstoque = new Button { Text = "Estoque", Location = new Point(140, y + 110), Size = new Size(90, 30), FlatStyle = FlatStyle.Flat };
+
+            var btnExportarPdf = new Button { Text = "Exportar PDF", Location = new Point(250, y + 110), Size = new Size(110, 30), FlatStyle = FlatStyle.Flat };
+            var btnExportarExcel = new Button { Text = "Exportar Excel", Location = new Point(372, y + 110), Size = new Size(118, 30), FlatStyle = FlatStyle.Flat };
 
             btnSalvar.Click += async (_, _) => await SalvarAsync();
             btnNovo.Click += (_, _) => LimparCampos();
@@ -78,6 +81,8 @@ namespace PDVStore.Forms
                 "Para ajustar estoque, use a tela de Estoque (Entrada/Saída).", "Ajuste de Estoque",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
             btnRefresh.Click += async (_, _) => await CarregarProdutosAsync();
+            btnExportarPdf.Click += (_, _) => ExportadorService.ExportarPdf(dgvProdutos, "Gerenciar Produtos", $"Produtos_{DateTime.Now:yyyyMMdd_HHmm}.pdf");
+            btnExportarExcel.Click += (_, _) => ExportadorService.ExportarExcel(dgvProdutos, "Gerenciar Produtos", $"Produtos_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
 
             dgvProdutos.SelectionChanged += (_, _) => SelecionarProduto();
 
@@ -85,7 +90,7 @@ namespace PDVStore.Forms
                 dgvProdutos, btnRefresh,
                 lbl1, txtCodigo, lbl2, txtNomeProduto, lbl3, txtPreco, lbl3b, txtPrecoCusto,
                 lbl4, txtEstoque, lbl4b, txtEstoqueMinimo, lbl5, txtCategoria, lbl6, txtDescricao,
-                btnSalvar, btnNovo, btnExcluir, btnAtualizarEstoque
+                btnSalvar, btnNovo, btnExcluir, btnAtualizarEstoque, btnExportarPdf, btnExportarExcel
             });
         }
 
@@ -100,6 +105,8 @@ namespace PDVStore.Forms
             dgvProdutos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Estoque", HeaderText = "Estoque", DataPropertyName = "EstoqueAtual", Width = 70 });
             dgvProdutos.Columns.Add(new DataGridViewTextBoxColumn { Name = "EstoqueMinimo", HeaderText = "Mín.", DataPropertyName = "EstoqueMinimo", Width = 55 });
             dgvProdutos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Categoria", HeaderText = "Categoria", DataPropertyName = "Categoria", Width = 100 });
+            foreach (DataGridViewColumn c in dgvProdutos.Columns) c.FillWeight = Math.Max(50, c.Width);
+            dgvProdutos.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         }
 
         private async Task CarregarProdutosAsync()
@@ -138,6 +145,12 @@ namespace PDVStore.Forms
 
         private async Task SalvarAsync()
         {
+            if (string.IsNullOrWhiteSpace(txtCodigo.Text))
+            {
+                MessageBox.Show("Código de barras é obrigatório.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             if (string.IsNullOrWhiteSpace(txtNomeProduto.Text))
             {
                 MessageBox.Show("Nome do produto é obrigatório.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);

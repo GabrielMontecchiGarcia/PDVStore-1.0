@@ -1,3 +1,4 @@
+using PDVStore.Helpers;
 using PDVStore.Services;
 using PDVStore.ViewModels;
 using System;
@@ -20,6 +21,8 @@ namespace PDVStore.Forms
         private Label lblPagamentos = null!;
         private DataGridView dgvMaisVendidos = null!;
         private DataGridView dgvAlertasEstoque = null!;
+        private Panel pnlGraficoProdutos = null!;
+        private Panel pnlGraficoVendas = null!;
 
         public frmDashboard(DashboardViewModel viewModel, RelatorioService relatorioService)
         {
@@ -33,7 +36,7 @@ namespace PDVStore.Forms
         {
             Text = "Dashboard & Relatórios";
             StartPosition = FormStartPosition.CenterScreen;
-            Size = new Size(1050, 640);
+            Size = new Size(1350, 900);
             Font = new Font("Segoe UI", 10F);
             BackColor = Color.White;
 
@@ -57,7 +60,7 @@ namespace PDVStore.Forms
             btnExportarExcel.Click += ExportarExcel;
 
             // Totais
-            var grpTotais = new GroupBox { Text = "Resumo do período", Location = new Point(15, 62), Size = new Size(1015, 110) };
+            var grpTotais = new GroupBox { Text = "Resumo do período", Location = new Point(15, 62), Size = new Size(1290, 110) };
 
             lblTotal = new Label { Text = "Total de vendas: R$ 0,00", Location = new Point(15, 28), AutoSize = true, Font = new Font("Segoe UI", 12F, FontStyle.Bold), ForeColor = Color.DarkGreen };
             lblQtdVendas = new Label { Text = "Quantidade de vendas: 0", Location = new Point(15, 60), AutoSize = true, Font = new Font("Segoe UI", 11F) };
@@ -67,11 +70,12 @@ namespace PDVStore.Forms
             Controls.Add(grpTotais);
 
             // Itens mais vendidos
-            var grpVendidos = new GroupBox { Text = "Itens mais vendidos", Location = new Point(15, 185), Size = new Size(620, 415) };
+            var grpVendidos = new GroupBox { Text = "Itens mais vendidos", Location = new Point(15, 185), Size = new Size(640, 430), Anchor = AnchorStyles.Top | AnchorStyles.Left };
             dgvMaisVendidos = new DataGridView
             {
                 Location = new Point(10, 24),
-                Size = new Size(600, 380),
+                Size = new Size(620, 395),
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
                 ReadOnly = true,
                 AllowUserToAddRows = false,
                 AutoGenerateColumns = false
@@ -80,15 +84,18 @@ namespace PDVStore.Forms
             dgvMaisVendidos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Codigo", HeaderText = "Código", DataPropertyName = "CodigoBarras", Width = 110 });
             dgvMaisVendidos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Qtd", HeaderText = "Qtd", DataPropertyName = "TotalVendido", Width = 60 });
             dgvMaisVendidos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Valor", HeaderText = "Valor", DataPropertyName = "ValorTotalVendido", Width = 100, DefaultCellStyle = new DataGridViewCellStyle { Format = "C2" } });
+            foreach (DataGridViewColumn c in dgvMaisVendidos.Columns) c.FillWeight = Math.Max(50, c.Width);
+            dgvMaisVendidos.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             grpVendidos.Controls.Add(dgvMaisVendidos);
             Controls.Add(grpVendidos);
 
             // Alertas de estoque
-            var grpAlertas = new GroupBox { Text = "Alertas de estoque mínimo", Location = new Point(650, 185), Size = new Size(380, 415) };
+            var grpAlertas = new GroupBox { Text = "Alertas de estoque mínimo", Location = new Point(665, 185), Size = new Size(330, 430), Anchor = AnchorStyles.Top | AnchorStyles.Left };
             dgvAlertasEstoque = new DataGridView
             {
                 Location = new Point(10, 24),
-                Size = new Size(360, 380),
+                Size = new Size(310, 395),
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
                 ReadOnly = true,
                 AllowUserToAddRows = false,
                 AutoGenerateColumns = false
@@ -96,8 +103,47 @@ namespace PDVStore.Forms
             dgvAlertasEstoque.Columns.Add(new DataGridViewTextBoxColumn { Name = "Produto", HeaderText = "Produto", DataPropertyName = "Nome", Width = 200 });
             dgvAlertasEstoque.Columns.Add(new DataGridViewTextBoxColumn { Name = "Estoque", HeaderText = "Atual", DataPropertyName = "EstoqueAtual", Width = 50 });
             dgvAlertasEstoque.Columns.Add(new DataGridViewTextBoxColumn { Name = "Minimo", HeaderText = "Mín.", DataPropertyName = "EstoqueMinimo", Width = 50 });
+            foreach (DataGridViewColumn c in dgvAlertasEstoque.Columns) c.FillWeight = Math.Max(50, c.Width);
+            dgvAlertasEstoque.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             grpAlertas.Controls.Add(dgvAlertasEstoque);
             Controls.Add(grpAlertas);
+
+            // Gráfico: entradas e saídas de produtos
+            var grpGraficoProdutos = new GroupBox { Text = "Entradas e Saídas de Produtos", Location = new Point(15, 625), Size = new Size(645, 235), Anchor = AnchorStyles.Top | AnchorStyles.Left };
+            pnlGraficoProdutos = new Panel { Location = new Point(9, 22), Size = new Size(626, 203), BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
+            pnlGraficoProdutos.Paint += PnlGraficoProdutos_Paint;
+            grpGraficoProdutos.Controls.Add(pnlGraficoProdutos);
+            Controls.Add(grpGraficoProdutos);
+
+            // Gráfico: vendas por dia
+            var grpGraficoVendas = new GroupBox { Text = "Vendas por Dia (R$)", Location = new Point(665, 625), Size = new Size(640, 235), Anchor = AnchorStyles.Top | AnchorStyles.Left };
+            pnlGraficoVendas = new Panel { Location = new Point(9, 22), Size = new Size(621, 203), BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
+            pnlGraficoVendas.Paint += PnlGraficoVendas_Paint;
+            grpGraficoVendas.Controls.Add(pnlGraficoVendas);
+            Controls.Add(grpGraficoVendas);
+        }
+
+        private void PnlGraficoProdutos_Paint(object? sender, PaintEventArgs e)
+        {
+            var dados = _viewModel.MovimentacoesPorDia;
+            var rotulos = dados.Select(d => d.Dia.ToString("dd/MM")).ToArray();
+            var series = new List<GraficoDeBarras.Serie>
+            {
+                new() { Nome = "Entradas", Cor = Color.ForestGreen, Valores = dados.Select(d => (decimal)d.Entradas).ToArray() },
+                new() { Nome = "Saídas", Cor = Color.Firebrick, Valores = dados.Select(d => (decimal)d.Saidas).ToArray() }
+            };
+            GraficoDeBarras.Desenhar(e.Graphics, pnlGraficoProdutos.ClientRectangle, "Entradas vs Saídas de Produtos", rotulos, series);
+        }
+
+        private void PnlGraficoVendas_Paint(object? sender, PaintEventArgs e)
+        {
+            var dados = _viewModel.VendasPorDia;
+            var rotulos = dados.Select(d => d.Dia.ToString("dd/MM")).ToArray();
+            var series = new List<GraficoDeBarras.Serie>
+            {
+                new() { Nome = "Vendas (R$)", Cor = Color.RoyalBlue, Valores = dados.Select(d => d.TotalVendas).ToArray() }
+            };
+            GraficoDeBarras.Desenhar(e.Graphics, pnlGraficoVendas.ClientRectangle, "Vendas por Dia", rotulos, series);
         }
 
         private async Task CarregarAsync()
@@ -126,6 +172,9 @@ namespace PDVStore.Forms
 
                 dgvMaisVendidos.DataSource = _viewModel.ItensMaisVendidos.ToList();
                 dgvAlertasEstoque.DataSource = _viewModel.AlertasEstoque.ToList();
+
+                pnlGraficoProdutos.Invalidate();
+                pnlGraficoVendas.Invalidate();
             }
             catch (Exception ex)
             {

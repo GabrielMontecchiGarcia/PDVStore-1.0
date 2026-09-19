@@ -1,5 +1,6 @@
 ﻿using PDVStore.Data;
 using PDVStore.Models;
+using PDVStore.Services;
 using Serilog;
 using System;
 using System.Drawing;
@@ -22,6 +23,13 @@ namespace PDVStore.Forms
 
             ConfigurarGrid();
             CarregarUsuarios();
+
+            var btnExportarPdf = new Button { Text = "Exportar PDF", Location = new Point(691, 290), Size = new Size(125, 29), FlatStyle = FlatStyle.Flat };
+            var btnExportarExcel = new Button { Text = "Exportar Excel", Location = new Point(691, 325), Size = new Size(125, 29), FlatStyle = FlatStyle.Flat };
+            btnExportarPdf.Click += (_, _) => ExportadorService.ExportarPdf(dgvUsuarios, "Usuários", $"Usuarios_{DateTime.Now:yyyyMMdd_HHmm}.pdf");
+            btnExportarExcel.Click += (_, _) => ExportadorService.ExportarExcel(dgvUsuarios, "Usuários", $"Usuarios_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
+            this.Controls.Add(btnExportarPdf);
+            this.Controls.Add(btnExportarExcel);
 
             txtBusca.TextChanged += TxtBusca_TextChanged;
         }
@@ -48,6 +56,8 @@ namespace PDVStore.Forms
                 DefaultCellStyle = { NullValue = Properties.Resources.user_default }
             };
             dgvUsuarios.Columns.Add(fotoColumn);
+            foreach (DataGridViewColumn c in dgvUsuarios.Columns) c.FillWeight = Math.Max(50, c.Width);
+            dgvUsuarios.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         }
 
         private void CarregarUsuarios(string filtro = "")

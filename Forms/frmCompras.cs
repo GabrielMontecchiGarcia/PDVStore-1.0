@@ -43,7 +43,7 @@ namespace PDVStore.Forms
         {
             Text = "Compras / Entrada de Mercadorias";
             StartPosition = FormStartPosition.CenterScreen;
-            Size = new Size(1050, 640);
+            Size = new Size(1050, 720);
             Font = new Font("Segoe UI", 10F);
             BackColor = Color.White;
 
@@ -71,6 +71,7 @@ namespace PDVStore.Forms
             {
                 Location = new Point(12, 110),
                 Size = new Size(560, 90),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                 ReadOnly = true,
                 AllowUserToAddRows = false,
                 AutoGenerateColumns = false
@@ -79,6 +80,8 @@ namespace PDVStore.Forms
             dgvItens.Columns.Add(new DataGridViewTextBoxColumn { Name = "Qtd", HeaderText = "Qtd", DataPropertyName = "Quantidade", Width = 60 });
             dgvItens.Columns.Add(new DataGridViewTextBoxColumn { Name = "Custo", HeaderText = "Custo", DataPropertyName = "PrecoCusto", DefaultCellStyle = new DataGridViewCellStyle { Format = "C2" } });
             dgvItens.Columns.Add(new DataGridViewTextBoxColumn { Name = "Subtotal", HeaderText = "Subtotal", DataPropertyName = "Subtotal", DefaultCellStyle = new DataGridViewCellStyle { Format = "C2" } });
+            foreach (DataGridViewColumn c in dgvItens.Columns) c.FillWeight = Math.Max(50, c.Width);
+            dgvItens.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
             var lblTotalLabel = new Label { Text = "Total:", Location = new Point(790, 148), AutoSize = true, Font = new Font("Segoe UI", 11F, FontStyle.Bold) };
             lblTotal = new Label { Text = "R$ 0,00", Location = new Point(850, 145), AutoSize = true, Font = new Font("Segoe UI", 13F, FontStyle.Bold), ForeColor = Color.DarkGreen };
@@ -95,12 +98,13 @@ namespace PDVStore.Forms
             btnSalvar.Click += async (_, _) => await SalvarAsync();
 
             // Listagem de compras
-            var grpLista = new GroupBox { Text = "Compras registradas", Location = new Point(15, 230), Size = new Size(1005, 360) };
+            var grpLista = new GroupBox { Text = "Compras registradas", Location = new Point(15, 230), Size = new Size(1005, 420), Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right };
 
             dgvCompras = new DataGridView
             {
                 Location = new Point(10, 30),
-                Size = new Size(985, 260),
+                Size = new Size(985, 330),
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
                 ReadOnly = true,
                 AllowUserToAddRows = false,
                 AutoGenerateColumns = false,
@@ -112,13 +116,20 @@ namespace PDVStore.Forms
             dgvCompras.Columns.Add(new DataGridViewTextBoxColumn { Name = "Nota", HeaderText = "Nº Nota", DataPropertyName = "NumeroNota", Width = 100 });
             dgvCompras.Columns.Add(new DataGridViewTextBoxColumn { Name = "Total", HeaderText = "Total", DataPropertyName = "ValorTotal", DefaultCellStyle = new DataGridViewCellStyle { Format = "C2" } });
             dgvCompras.Columns.Add(new DataGridViewTextBoxColumn { Name = "Status", HeaderText = "Status", DataPropertyName = "Status", Width = 90 });
+            foreach (DataGridViewColumn c in dgvCompras.Columns) c.FillWeight = Math.Max(50, c.Width);
+            dgvCompras.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
-            btnCancelarCompra = new Button { Text = "Cancelar compra selecionada", Location = new Point(10, 310), Size = new Size(220, 34), BackColor = Color.Firebrick, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnCancelarCompra = new Button { Text = "Cancelar compra selecionada", Location = new Point(10, 380), Size = new Size(220, 34), BackColor = Color.Firebrick, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
 
-            grpLista.Controls.AddRange(new Control[] { dgvCompras, btnCancelarCompra });
+            var btnExportarPdf = new Button { Text = "Exportar PDF", Location = new Point(245, 380), Size = new Size(120, 34), FlatStyle = FlatStyle.Flat };
+            var btnExportarExcel = new Button { Text = "Exportar Excel", Location = new Point(375, 380), Size = new Size(130, 34), FlatStyle = FlatStyle.Flat };
+
+            grpLista.Controls.AddRange(new Control[] { dgvCompras, btnCancelarCompra, btnExportarPdf, btnExportarExcel });
             Controls.Add(grpLista);
 
             btnCancelarCompra.Click += async (_, _) => await CancelarAsync();
+            btnExportarPdf.Click += (_, _) => ExportadorService.ExportarPdf(dgvCompras, "Compras", $"Compras_{DateTime.Now:yyyyMMdd_HHmm}.pdf");
+            btnExportarExcel.Click += (_, _) => ExportadorService.ExportarExcel(dgvCompras, "Compras", $"Compras_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
         }
 
         private async Task CarregarAsync()

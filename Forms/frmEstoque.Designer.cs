@@ -49,7 +49,8 @@
             dgvProdutos.Location = new Point(16, 212);
             dgvProdutos.Name = "dgvProdutos";
             dgvProdutos.RowHeadersWidth = 51;
-            dgvProdutos.Size = new Size(564, 266);
+            dgvProdutos.Size = new Size(720, 266);
+            dgvProdutos.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             dgvProdutos.TabIndex = 0;
             dgvProdutos.SelectionChanged += dgvProdutos_SelectionChanged;
             // 
@@ -153,7 +154,7 @@
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(663, 546);
+            ClientSize = new Size(780, 546);
             Controls.Add(lblProdutoSelecionado);
             Controls.Add(btnConfirmarMovimento);
             Controls.Add(btnBuscar);

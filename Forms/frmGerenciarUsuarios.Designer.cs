@@ -45,7 +45,8 @@
             dgvUsuarios.Location = new Point(12, 65);
             dgvUsuarios.Name = "dgvUsuarios";
             dgvUsuarios.RowHeadersWidth = 51;
-            dgvUsuarios.Size = new Size(643, 326);
+            dgvUsuarios.Size = new Size(643, 380);
+            dgvUsuarios.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             dgvUsuarios.TabIndex = 0;
             dgvUsuarios.CellContentClick += dgvUsuarios_CellContentClick;
             // 
@@ -119,7 +120,7 @@
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(887, 428);
+            ClientSize = new Size(887, 500);
             Controls.Add(btnBuscarUsuario);
             Controls.Add(txtBusca);
             Controls.Add(lblPesquisar);

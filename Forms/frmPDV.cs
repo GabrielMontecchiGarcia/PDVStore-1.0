@@ -112,6 +112,7 @@ namespace PDVStore.Forms
             {
                 Location = new Point(10, 100),
                 Size = new Size(590, 445),
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
                 ReadOnly = true,
                 MultiSelect = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
@@ -130,6 +131,7 @@ namespace PDVStore.Forms
             {
                 Location = new Point(10, 24),
                 Size = new Size(680, 250),
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
                 ReadOnly = true,
                 MultiSelect = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
@@ -196,6 +198,8 @@ namespace PDVStore.Forms
                 DefaultCellStyle = new DataGridViewCellStyle { Format = "C2" }
             });
             dgvProdutos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Estoque", HeaderText = "Estoque", DataPropertyName = "Estoque", Width = 60 });
+            foreach (DataGridViewColumn c in dgvProdutos.Columns) c.FillWeight = Math.Max(50, c.Width);
+            dgvProdutos.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             dgvProdutos.SelectionChanged += (_, _) => PreencherQuantidadePadrao();
         }
 
@@ -219,6 +223,8 @@ namespace PDVStore.Forms
                 Width = 110,
                 DefaultCellStyle = new DataGridViewCellStyle { Format = "C2" }
             });
+            foreach (DataGridViewColumn c in dgvItens.Columns) c.FillWeight = Math.Max(50, c.Width);
+            dgvItens.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         }
 
         private void PreencherQuantidadePadrao()

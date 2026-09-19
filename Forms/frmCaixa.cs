@@ -29,7 +29,7 @@ namespace PDVStore.Forms
         {
             Text = "Abertura / Fechamento de Caixa";
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(820, 420);
+            ClientSize = new Size(820, 560);
             Font = new Font("Segoe UI", 10F);
             BackColor = Color.White;
 
@@ -56,15 +56,19 @@ namespace PDVStore.Forms
             btnSangria = new Button { Text = "Sangria", Location = new Point(165, 105), Size = new Size(120, 44), BackColor = Color.DarkOrange, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnFechar = new Button { Text = "Fechar caixa", Location = new Point(295, 105), Size = new Size(140, 44), BackColor = Color.Firebrick, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
 
-            grpOperacao.Controls.AddRange(new Control[] { lblStatus, lblDetalhes, btnAbrir, btnSangria, btnFechar });
+            var btnExportarPdf = new Button { Text = "Exportar PDF", Location = new Point(460, 105), Size = new Size(125, 44), FlatStyle = FlatStyle.Flat };
+            var btnExportarExcel = new Button { Text = "Exportar Excel", Location = new Point(595, 105), Size = new Size(130, 44), FlatStyle = FlatStyle.Flat };
+
+            grpOperacao.Controls.AddRange(new Control[] { lblStatus, lblDetalhes, btnAbrir, btnSangria, btnFechar, btnExportarPdf, btnExportarExcel });
             Controls.Add(grpOperacao);
 
-            var grpHistorico = new GroupBox { Text = "Histórico", Location = new Point(15, 195), Size = new Size(790, 205) };
+            var grpHistorico = new GroupBox { Text = "Histórico", Location = new Point(15, 195), Size = new Size(790, 340), Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right };
 
             dgvCaixas = new DataGridView
             {
                 Location = new Point(10, 24),
-                Size = new Size(770, 170),
+                Size = new Size(770, 305),
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
                 ReadOnly = true,
                 AllowUserToAddRows = false,
                 AutoGenerateColumns = false,
@@ -77,6 +81,8 @@ namespace PDVStore.Forms
             dgvCaixas.Columns.Add(new DataGridViewTextBoxColumn { Name = "Inicial", HeaderText = "Inicial", DataPropertyName = "ValorInicial", DefaultCellStyle = new DataGridViewCellStyle { Format = "C2" } });
             dgvCaixas.Columns.Add(new DataGridViewTextBoxColumn { Name = "Final", HeaderText = "Final", DataPropertyName = "ValorFinal", DefaultCellStyle = new DataGridViewCellStyle { Format = "C2" } });
             dgvCaixas.Columns.Add(new DataGridViewTextBoxColumn { Name = "Sangria", HeaderText = "Sangria", DataPropertyName = "Sangria", DefaultCellStyle = new DataGridViewCellStyle { Format = "C2" } });
+            foreach (DataGridViewColumn c in dgvCaixas.Columns) c.FillWeight = Math.Max(50, c.Width);
+            dgvCaixas.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
             grpHistorico.Controls.Add(dgvCaixas);
             Controls.Add(grpHistorico);
@@ -84,6 +90,8 @@ namespace PDVStore.Forms
             btnAbrir.Click += async (_, _) => await AbrirCaixaAsync();
             btnSangria.Click += async (_, _) => await SangriaAsync();
             btnFechar.Click += async (_, _) => await FecharCaixaAsync();
+            btnExportarPdf.Click += (_, _) => ExportadorService.ExportarPdf(dgvCaixas, "Histórico de Caixa", $"Caixas_{DateTime.Now:yyyyMMdd_HHmm}.pdf");
+            btnExportarExcel.Click += (_, _) => ExportadorService.ExportarExcel(dgvCaixas, "Histórico de Caixa", $"Caixas_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
         }
 
         private async Task AtualizarAsync()

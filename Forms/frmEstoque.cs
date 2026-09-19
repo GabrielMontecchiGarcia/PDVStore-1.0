@@ -63,6 +63,15 @@ namespace PDVStore.Forms
                 dgvProdutos.Columns.Add(new DataGridViewTextBoxColumn { Name = "EstoqueAtual", HeaderText = "Estoque Atual", DataPropertyName = "EstoqueAtual", Width = 120 });
                 dgvProdutos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Preco", HeaderText = "Preço", DataPropertyName = "Preco", DefaultCellStyle = new DataGridViewCellStyle { Format = "C2" } });
             }
+            foreach (DataGridViewColumn c in dgvProdutos.Columns) c.FillWeight = Math.Max(50, c.Width);
+            dgvProdutos.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+
+            var btnExportarPdf = new Button { Text = "Exportar PDF", Location = new Point(590, 136), Size = new Size(110, 29), FlatStyle = FlatStyle.Flat };
+            var btnExportarExcel = new Button { Text = "Exportar Excel", Location = new Point(590, 171), Size = new Size(110, 29), FlatStyle = FlatStyle.Flat };
+            btnExportarPdf.Click += (_, _) => ExportadorService.ExportarPdf(dgvProdutos, "Gestão de Estoque", $"Estoque_{DateTime.Now:yyyyMMdd_HHmm}.pdf");
+            btnExportarExcel.Click += (_, _) => ExportadorService.ExportarExcel(dgvProdutos, "Gestão de Estoque", $"Estoque_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
+            this.Controls.Add(btnExportarPdf);
+            this.Controls.Add(btnExportarExcel);
         }
 
         private async void btnBuscar_Click(object sender, EventArgs e)
