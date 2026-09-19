@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -15,16 +15,16 @@ namespace PDVStore.Migrations
                 name: "MovimentacoesEstoque",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ProdutoId = table.Column<int>(type: "int", nullable: false),
-                    Tipo = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Quantidade = table.Column<int>(type: "int", nullable: false),
+                    ProdutoId = table.Column<int>(type: "INTEGER", nullable: false),
+                    Tipo = table.Column<string>(nullable: false),
+                    Quantidade = table.Column<int>(type: "INTEGER", nullable: false),
                     PrecoUnitario = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     DataMovimentacao = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UsuarioId = table.Column<int>(type: "int", nullable: false),
-                    Motivo = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ReferenciaVendaId = table.Column<int>(type: "int", nullable: true)
+                    UsuarioId = table.Column<int>(type: "INTEGER", nullable: false),
+                    Motivo = table.Column<string>(nullable: true),
+                    ReferenciaVendaId = table.Column<int>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {

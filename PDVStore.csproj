@@ -22,6 +22,14 @@
     <None Remove="PDVStore.Setup\**" />
   </ItemGroup>
 
+  <!-- Projeto de testes separado (compilado apenas pelo PDVStore.Tests) -->
+  <ItemGroup>
+    <Compile Remove="PDVStore.Tests\**\*.cs" />
+    <Content Remove="PDVStore.Tests\**" />
+    <EmbeddedResource Remove="PDVStore.Tests\**" />
+    <None Remove="PDVStore.Tests\**" />
+  </ItemGroup>
+
   <!-- Include any files placed under Resources\Images in the output directory -->
   <ItemGroup>
     <Content Include="Resources\Images\**\*.*">

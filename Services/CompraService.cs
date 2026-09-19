@@ -34,6 +34,13 @@ namespace PDVStore.Services
 
             try
             {
+                foreach (var item in compra.Itens)
+                {
+                    var produto = await _context.Produtos.FindAsync(item.ProdutoId);
+                    if (produto == null)
+                        throw new InvalidOperationException($"Produto ID {item.ProdutoId} não encontrado.");
+                }
+
                 compra.DataCompra = DateTime.UtcNow;
                 compra.ValorTotal = compra.Itens.Sum(i => i.Subtotal);
 
@@ -43,8 +50,6 @@ namespace PDVStore.Services
                 foreach (var item in compra.Itens)
                 {
                     var produto = await _context.Produtos.FindAsync(item.ProdutoId);
-                    if (produto == null)
-                        throw new InvalidOperationException($"Produto ID {item.ProdutoId} não encontrado.");
 
                     produto.Estoque += item.Quantidade;
                     if (item.PrecoCusto > 0)

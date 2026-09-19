@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -68,7 +68,7 @@ namespace PDVStore.Migrations
             migrationBuilder.AddColumn<int>(
                 name: "ClienteId",
                 table: "Vendas",
-                type: "int",
+type: "INTEGER",
                 nullable: true);
 
             migrationBuilder.AddColumn<decimal>(
@@ -81,10 +81,10 @@ namespace PDVStore.Migrations
             migrationBuilder.AlterColumn<int>(
                 name: "UsuarioId",
                 table: "MovimentacoesEstoque",
-                type: "int",
+type: "INTEGER",
                 nullable: true,
                 oldClrType: typeof(int),
-                oldType: "int");
+                oldType: "INTEGER");
 
             migrationBuilder.AddPrimaryKey(
                 name: "PK_Usuarios",
@@ -100,15 +100,15 @@ namespace PDVStore.Migrations
                 name: "Caixas",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UsuarioCaixaId = table.Column<int>(type: "int", nullable: false),
+                    UsuarioCaixaId = table.Column<int>(type: "INTEGER", nullable: false),
                     Abertura = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Fechamento = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ValorInicial = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     ValorFinal = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     Sangria = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Status = table.Column<string>(nullable: false)
                 },
                 constraints: table =>
                 {
@@ -125,13 +125,13 @@ namespace PDVStore.Migrations
                 name: "Clientes",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Nome = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CpfCnpj = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Telefone = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Endereco = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Nome = table.Column<string>(nullable: false),
+                    CpfCnpj = table.Column<string>(nullable: true),
+                    Telefone = table.Column<string>(nullable: true),
+                    Email = table.Column<string>(nullable: true),
+                    Endereco = table.Column<string>(nullable: true),
                     CadastradoEm = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Ativo = table.Column<bool>(type: "bit", nullable: false),
                     LimiteCredito = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
@@ -146,12 +146,12 @@ namespace PDVStore.Migrations
                 name: "Fornecedores",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Nome = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Cnpj = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Telefone = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Nome = table.Column<string>(nullable: false),
+                    Cnpj = table.Column<string>(nullable: true),
+                    Telefone = table.Column<string>(nullable: true),
+                    Email = table.Column<string>(nullable: true),
                     Ativo = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
@@ -163,14 +163,14 @@ namespace PDVStore.Migrations
                 name: "Compras",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    FornecedorId = table.Column<int>(type: "int", nullable: false),
-                    UsuarioCaixaId = table.Column<int>(type: "int", nullable: false),
+                    FornecedorId = table.Column<int>(type: "INTEGER", nullable: false),
+                    UsuarioCaixaId = table.Column<int>(type: "INTEGER", nullable: false),
                     DataCompra = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    NumeroNota = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    NumeroNota = table.Column<string>(nullable: true),
                     ValorTotal = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Status = table.Column<string>(nullable: false)
                 },
                 constraints: table =>
                 {
@@ -193,11 +193,11 @@ namespace PDVStore.Migrations
                 name: "ItensCompras",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    CompraId = table.Column<int>(type: "int", nullable: false),
-                    ProdutoId = table.Column<int>(type: "int", nullable: false),
-                    Quantidade = table.Column<int>(type: "int", nullable: false),
+                    CompraId = table.Column<int>(type: "INTEGER", nullable: false),
+                    ProdutoId = table.Column<int>(type: "INTEGER", nullable: false),
+                    Quantidade = table.Column<int>(type: "INTEGER", nullable: false),
                     PrecoCusto = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
                 },
                 constraints: table =>
@@ -417,11 +417,11 @@ namespace PDVStore.Migrations
             migrationBuilder.AlterColumn<int>(
                 name: "UsuarioId",
                 table: "MovimentacoesEstoque",
-                type: "int",
+type: "INTEGER",
                 nullable: false,
                 defaultValue: 0,
                 oldClrType: typeof(int),
-                oldType: "int",
+oldType: "INTEGER",
                 oldNullable: true);
 
             migrationBuilder.AddPrimaryKey(
@@ -438,9 +438,9 @@ namespace PDVStore.Migrations
                 name: "FormaPagamentos",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Nome = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Nome = table.Column<string>(nullable: false)
                 },
                 constraints: table =>
                 {

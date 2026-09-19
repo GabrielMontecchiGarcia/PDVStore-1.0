@@ -41,14 +41,14 @@ namespace PDVStore.Services
 
         public async Task<bool> FecharCaixaAsync(int caixaId)
         {
-            var caixa = await _context.Caixas
-                .Include(c => c.Vendas.Where(v => v.Status == "Concluida"))
-                .FirstOrDefaultAsync(c => c.Id == caixaId);
+            var caixa = await _context.Caixas.FindAsync(caixaId);
 
             if (caixa == null || caixa.Status != "Aberto")
                 return false;
 
-            decimal totalVendas = caixa.Vendas.Sum(v => v.ValorTotal);
+            decimal totalVendas = await _context.Vendas
+                .Where(v => v.CaixaId == caixaId && v.Status == "Concluida")
+                .SumAsync(v => v.ValorTotal);
             decimal sangria = caixa.Sangria ?? 0;
 
             caixa.ValorFinal = caixa.ValorInicial + totalVendas - sangria;

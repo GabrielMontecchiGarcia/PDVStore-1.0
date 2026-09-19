@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -20,7 +20,6 @@ namespace PDVStore.Migrations
             migrationBuilder.AddColumn<string>(
                 name: "FotoPath",
                 table: "UsuarioCaixa",
-                type: "nvarchar(max)",
                 nullable: true);
 
             migrationBuilder.UpdateData(

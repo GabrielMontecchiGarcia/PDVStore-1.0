@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -33,7 +33,7 @@ namespace PDVStore.Migrations
             migrationBuilder.AddColumn<int>(
                 name: "CaixaId",
                 table: "Vendas",
-                type: "int",
+type: "INTEGER",
                 nullable: false,
                 defaultValue: 0);
 
@@ -47,20 +47,17 @@ namespace PDVStore.Migrations
             migrationBuilder.AddColumn<string>(
                 name: "FormaPagamento",
                 table: "Vendas",
-                type: "nvarchar(max)",
                 nullable: false,
                 defaultValue: "");
 
             migrationBuilder.AddColumn<string>(
                 name: "PixTxId",
                 table: "Vendas",
-                type: "nvarchar(max)",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "Status",
                 table: "Vendas",
-                type: "nvarchar(max)",
                 nullable: true);
 
             migrationBuilder.CreateIndex(

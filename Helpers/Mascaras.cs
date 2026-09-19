@@ -12,20 +12,25 @@ namespace PDVStore.Helpers
 
         /// <summary>
         /// Converte texto digitado em decimal aceitando vírgula ou ponto como
-        /// separador decimal, independentemente da cultura atual.
+        /// separador decimal, independentemente da cultura atual. O último
+        /// separador presente no texto é considerado o separador decimal.
         /// </summary>
         public static decimal ParseDecimal(string? texto, decimal valorPadrao = 0)
         {
             var t = (texto ?? string.Empty).Trim();
             if (string.IsNullOrEmpty(t)) return valorPadrao;
+
+            int ultimoPonto = t.LastIndexOf('.');
+            int ultimaVirgula = t.LastIndexOf(',');
+
+            if (ultimaVirgula > ultimoPonto)
+                t = t.Replace(".", string.Empty).Replace(',', '.');
+            else if (ultimoPonto > ultimaVirgula)
+                t = t.Replace(",", string.Empty);
+
             if (!decimal.TryParse(t, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal v))
-            {
-                string dec = CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator;
-                string outro = dec == "," ? "." : ",";
-                t = t.Replace(outro, dec);
-                if (!decimal.TryParse(t, NumberStyles.Number, CultureInfo.CurrentCulture, out v))
-                    return Math.Max(0, valorPadrao);
-            }
+                return Math.Max(0, valorPadrao);
+
             return Math.Max(0, v);
         }
 

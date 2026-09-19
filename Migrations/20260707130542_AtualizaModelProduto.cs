@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -20,25 +20,22 @@ namespace PDVStore.Migrations
             migrationBuilder.AddColumn<string>(
                 name: "Categoria",
                 table: "Produtos",
-                type: "nvarchar(max)",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "CodigoBarras",
                 table: "Produtos",
-                type: "nvarchar(max)",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "Descricao",
                 table: "Produtos",
-                type: "nvarchar(max)",
                 nullable: true);
 
             migrationBuilder.AddColumn<int>(
                 name: "EstoqueAtual",
                 table: "Produtos",
-                type: "int",
+type: "INTEGER",
                 nullable: false,
                 defaultValue: 0);
         }
