@@ -38,20 +38,22 @@
             // 
             // btnLogin
             // 
-            btnLogin.Location = new Point(208, 119);
+            btnLogin.Location = new Point(98, 89);
+            btnLogin.Margin = new Padding(3, 2, 3, 2);
             btnLogin.Name = "btnLogin";
-            btnLogin.Size = new Size(94, 29);
-            btnLogin.TabIndex = 0;
+            btnLogin.Size = new Size(82, 22);
+            btnLogin.TabIndex = 2;
             btnLogin.Text = "Acessar";
             btnLogin.UseVisualStyleBackColor = true;
             btnLogin.Click += btnLogin_Click;
             // 
             // btnSair
             // 
-            btnSair.Location = new Point(100, 119);
+            btnSair.Location = new Point(186, 89);
+            btnSair.Margin = new Padding(3, 2, 3, 2);
             btnSair.Name = "btnSair";
-            btnSair.Size = new Size(94, 29);
-            btnSair.TabIndex = 9;
+            btnSair.Size = new Size(82, 22);
+            btnSair.TabIndex = 3;
             btnSair.Text = "Sair";
             btnSair.UseVisualStyleBackColor = true;
             btnSair.Click += btnSair_Click;
@@ -59,47 +61,50 @@
             // lblUsuario
             // 
             lblUsuario.AutoSize = true;
-            lblUsuario.Location = new Point(26, 24);
+            lblUsuario.Location = new Point(23, 18);
             lblUsuario.Name = "lblUsuario";
-            lblUsuario.Size = new Size(80, 20);
+            lblUsuario.Size = new Size(64, 15);
             lblUsuario.TabIndex = 1;
             lblUsuario.Text = "Usuário(a):";
             // 
             // lblSenha
             // 
             lblSenha.AutoSize = true;
-            lblSenha.Location = new Point(30, 71);
+            lblSenha.Location = new Point(26, 53);
             lblSenha.Name = "lblSenha";
-            lblSenha.Size = new Size(52, 20);
+            lblSenha.Size = new Size(42, 15);
             lblSenha.TabIndex = 2;
             lblSenha.Text = "Senha:";
             // 
             // txtSenha
             // 
-            txtSenha.Location = new Point(112, 71);
+            txtSenha.Location = new Point(98, 53);
+            txtSenha.Margin = new Padding(3, 2, 3, 2);
             txtSenha.Name = "txtSenha";
             txtSenha.PasswordChar = '*';
-            txtSenha.Size = new Size(190, 27);
-            txtSenha.TabIndex = 3;
+            txtSenha.Size = new Size(167, 23);
+            txtSenha.TabIndex = 1;
             // 
             // txtUsuario
             // 
-            txtUsuario.Location = new Point(112, 21);
+            txtUsuario.Location = new Point(98, 16);
+            txtUsuario.Margin = new Padding(3, 2, 3, 2);
             txtUsuario.Name = "txtUsuario";
-            txtUsuario.Size = new Size(190, 27);
-            txtUsuario.TabIndex = 4;
+            txtUsuario.Size = new Size(167, 23);
+            txtUsuario.TabIndex = 0;
             // 
             // frmLogin
             // 
-            AutoScaleDimensions = new SizeF(8F, 20F);
+            AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(398, 252);
+            ClientSize = new Size(348, 189);
             Controls.Add(txtUsuario);
             Controls.Add(txtSenha);
             Controls.Add(lblSenha);
             Controls.Add(lblUsuario);
             Controls.Add(btnLogin);
             Controls.Add(btnSair);
+            Margin = new Padding(3, 2, 3, 2);
             Name = "frmLogin";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "PDV Store - Login";

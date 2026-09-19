@@ -46,33 +46,36 @@
             // 
             // txtNome
             // 
-            txtNome.Location = new Point(288, 33);
+            txtNome.Location = new Point(252, 25);
+            txtNome.Margin = new Padding(3, 2, 3, 2);
             txtNome.Name = "txtNome";
-            txtNome.Size = new Size(298, 27);
+            txtNome.Size = new Size(261, 23);
             txtNome.TabIndex = 1;
             // 
             // label1
             // 
             label1.AutoSize = true;
-            label1.Location = new Point(200, 69);
+            label1.Location = new Point(175, 52);
             label1.Name = "label1";
-            label1.Size = new Size(52, 20);
+            label1.Size = new Size(42, 15);
             label1.TabIndex = 2;
             label1.Text = "Senha:";
             // 
             // txtSenha
             // 
-            txtSenha.Location = new Point(288, 69);
+            txtSenha.Location = new Point(252, 52);
+            txtSenha.Margin = new Padding(3, 2, 3, 2);
             txtSenha.Name = "txtSenha";
-            txtSenha.Size = new Size(182, 27);
+            txtSenha.PasswordChar = '*';
+            txtSenha.Size = new Size(160, 23);
             txtSenha.TabIndex = 3;
             // 
             // lblConfirma
             // 
             lblConfirma.AutoSize = true;
-            lblConfirma.Location = new Point(200, 116);
+            lblConfirma.Location = new Point(175, 87);
             lblConfirma.Name = "lblConfirma";
-            lblConfirma.Size = new Size(78, 20);
+            lblConfirma.Size = new Size(64, 15);
             lblConfirma.TabIndex = 5;
             lblConfirma.Text = "Confirmar:";
             // 
@@ -80,9 +83,10 @@
             // 
             picFoto.BorderStyle = BorderStyle.Fixed3D;
             picFoto.Image = Properties.Resources.user_default;
-            picFoto.Location = new Point(22, 29);
+            picFoto.Location = new Point(19, 22);
+            picFoto.Margin = new Padding(3, 2, 3, 2);
             picFoto.Name = "picFoto";
-            picFoto.Size = new Size(147, 144);
+            picFoto.Size = new Size(129, 109);
             picFoto.SizeMode = PictureBoxSizeMode.StretchImage;
             picFoto.TabIndex = 6;
             picFoto.TabStop = false;
@@ -90,24 +94,27 @@
             // lblNome
             // 
             lblNome.AutoSize = true;
-            lblNome.Location = new Point(200, 36);
+            lblNome.Location = new Point(175, 27);
             lblNome.Name = "lblNome";
-            lblNome.Size = new Size(53, 20);
+            lblNome.Size = new Size(43, 15);
             lblNome.TabIndex = 7;
             lblNome.Text = "Nome:";
             // 
             // txtConfirmaSenha
             // 
-            txtConfirmaSenha.Location = new Point(288, 113);
+            txtConfirmaSenha.Location = new Point(252, 85);
+            txtConfirmaSenha.Margin = new Padding(3, 2, 3, 2);
             txtConfirmaSenha.Name = "txtConfirmaSenha";
-            txtConfirmaSenha.Size = new Size(182, 27);
+            txtConfirmaSenha.PasswordChar = '*';
+            txtConfirmaSenha.Size = new Size(160, 23);
             txtConfirmaSenha.TabIndex = 8;
             // 
             // btnSalvar
             // 
-            btnSalvar.Location = new Point(288, 180);
+            btnSalvar.Location = new Point(252, 135);
+            btnSalvar.Margin = new Padding(3, 2, 3, 2);
             btnSalvar.Name = "btnSalvar";
-            btnSalvar.Size = new Size(147, 29);
+            btnSalvar.Size = new Size(129, 22);
             btnSalvar.TabIndex = 9;
             btnSalvar.Text = "Cadastrar usuário";
             btnSalvar.UseVisualStyleBackColor = true;
@@ -115,9 +122,10 @@
             // 
             // btnEscolherFoto
             // 
-            btnEscolherFoto.Location = new Point(22, 180);
+            btnEscolherFoto.Location = new Point(19, 135);
+            btnEscolherFoto.Margin = new Padding(3, 2, 3, 2);
             btnEscolherFoto.Name = "btnEscolherFoto";
-            btnEscolherFoto.Size = new Size(147, 29);
+            btnEscolherFoto.Size = new Size(129, 22);
             btnEscolherFoto.TabIndex = 10;
             btnEscolherFoto.Text = "Escolher foto";
             btnEscolherFoto.UseVisualStyleBackColor = true;
@@ -125,9 +133,10 @@
             // 
             // btnCancelar
             // 
-            btnCancelar.Location = new Point(288, 215);
+            btnCancelar.Location = new Point(252, 161);
+            btnCancelar.Margin = new Padding(3, 2, 3, 2);
             btnCancelar.Name = "btnCancelar";
-            btnCancelar.Size = new Size(147, 29);
+            btnCancelar.Size = new Size(129, 22);
             btnCancelar.TabIndex = 11;
             btnCancelar.Text = "Cancelar";
             btnCancelar.UseVisualStyleBackColor = true;
@@ -140,25 +149,26 @@
             // lblPermissao
             // 
             lblPermissao.AutoSize = true;
-            lblPermissao.Location = new Point(200, 150);
+            lblPermissao.Location = new Point(175, 112);
             lblPermissao.Name = "lblPermissao";
-            lblPermissao.Size = new Size(55, 20);
+            lblPermissao.Size = new Size(39, 15);
             lblPermissao.TabIndex = 13;
             lblPermissao.Text = "Papel:";
             // 
             // cboPermissao
             // 
             cboPermissao.DropDownStyle = ComboBoxStyle.DropDownList;
-            cboPermissao.Location = new Point(288, 146);
+            cboPermissao.Location = new Point(252, 110);
+            cboPermissao.Margin = new Padding(3, 2, 3, 2);
             cboPermissao.Name = "cboPermissao";
-            cboPermissao.Size = new Size(298, 28);
+            cboPermissao.Size = new Size(261, 23);
             cboPermissao.TabIndex = 14;
             // 
             // frmCadastroUsuario
             // 
-            AutoScaleDimensions = new SizeF(8F, 20F);
+            AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(610, 276);
+            ClientSize = new Size(534, 207);
             Controls.Add(cboPermissao);
             Controls.Add(lblPermissao);
             Controls.Add(btnCancelar);
@@ -171,6 +181,7 @@
             Controls.Add(txtSenha);
             Controls.Add(label1);
             Controls.Add(txtNome);
+            Margin = new Padding(3, 2, 3, 2);
             Name = "frmCadastroUsuario";
             Text = "frmCadastroUsuario";
             ((System.ComponentModel.ISupportInitialize)picFoto).EndInit();
