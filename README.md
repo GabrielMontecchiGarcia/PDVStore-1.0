@@ -30,6 +30,31 @@ Sistema de Ponto de Venda (PDV) para pequenas lojas e comércios de bairro. Dese
 
 ## Instalação
 
+### 0. Instalador guiado (PDVStore.Setup)
+
+O projeto **`PDVStore.Setup`** é um assistente WinForms que **verifica requisitos, prepara o ambiente e instala o software** passo a passo:
+
+1. **Boas-vindas** — escolha a pasta de instalação (publicação) e o nome do banco.
+2. **Verificação** — detecta se já existem: **.NET SDK 8+**, **SQL Server Express LocalDB** e a ferramenta global **dotnet-ef**.
+3. **Preparação (7 etapas)** — baixa e instala automaticamente o que estiver ausente (via **dotnet-install.ps1** oficial do .NET e do **SqlLocalDB.msi** oficial da Microsoft):
+   - ① .NET SDK 8 (`%LOCALAPPDATA%\Microsoft\dotnet`, sem admin);
+   - ② SQL Server Express LocalDB (pode pedir confirmação do UAC);
+   - ③ dotnet-ef (`dotnet tool install --global dotnet-ef --version 9.0.*`);
+   - ④ PATH do usuário (`.dotnet\tools` e pasta do SDK);
+   - ⑤ instância **MSSQLLocalDB** (cria/inicia);
+   - ⑥ `dotnet ef database update` (migrações);
+   - ⑦ `dotnet publish` do PDVStore (Release) na pasta escolhida + atalho na área de trabalho.
+4. **Conclusão** — resumo da instalação e opção de **abrir o PDVStore**.
+
+Para executar (dentro da pasta do repo):
+
+```bash
+dotnet build PDVStore.Setup\PDVStore.Setup.csproj
+dotnet run --project PDVStore.Setup\PDVStore.Setup.csproj
+```
+
+Caso o projeto PDVStore não seja localizado (ex.: instalador copiado sozinho), as etapas ⑥ e ⑦ são puladas com aviso — o banco é migrado automaticamente pelo próprio aplicativo na primeira execução.
+
 ### 1. Restaurar os pacotes
 
 ```bash

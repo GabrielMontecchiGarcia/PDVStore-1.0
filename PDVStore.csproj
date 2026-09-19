@@ -14,6 +14,14 @@
     <Folder Include="Resourses\Reports\" />
   </ItemGroup>
 
+  <!-- Projeto de instalação separado (fora do build do aplicativo) -->
+  <ItemGroup>
+    <Compile Remove="PDVStore.Setup\**\*.cs" />
+    <Content Remove="PDVStore.Setup\**" />
+    <EmbeddedResource Remove="PDVStore.Setup\**" />
+    <None Remove="PDVStore.Setup\**" />
+  </ItemGroup>
+
   <!-- Include any files placed under Resources\Images in the output directory -->
   <ItemGroup>
     <Content Include="Resources\Images\**\*.*">
