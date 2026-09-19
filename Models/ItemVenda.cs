@@ -9,6 +9,8 @@
         public decimal PrecoUnitario { get; set; }
         public decimal Subtotal => Quantidade * PrecoUnitario;
 
+        public string? NomeProduto => Produto?.Nome;
+
         public Produto? Produto { get; set; }
         public Venda? Venda { get; set; }
     }

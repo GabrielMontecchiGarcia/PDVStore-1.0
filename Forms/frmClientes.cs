@@ -250,16 +250,51 @@ namespace PDVStore.Forms
                 return;
             }
 
-            var valor = Helpers.PromptDialog.AskDecimal("Receber Fiado",
-                $"Cliente: {_clienteSelecionado.Nome}\nDébito atual: {_clienteSelecionado.SaldoDevedor:C2}\nValor a receber:",
-                _clienteSelecionado.SaldoDevedor);
+            var saldoDevedor = _clienteSelecionado.SaldoDevedor;
 
-            if (valor.HasValue && valor.Value > 0)
+            var valor = Helpers.PromptDialog.AskDecimal("Receber Fiado",
+                $"Cliente: {_clienteSelecionado.Nome}\nDébito atual: {saldoDevedor:C2}\nValor a receber (parcial ou total):",
+                saldoDevedor);
+
+            if (!valor.HasValue)
+                return;
+
+            decimal pagamento = valor.Value;
+            if (pagamento <= 0)
             {
-                await _clienteService.ReceberFiadoAsync(_clienteSelecionado.Id, valor.Value);
-                MessageBox.Show($"Pagamento de {valor.Value:C2} registrado!", "Sucesso", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                await CarregarAsync();
+                MessageBox.Show("Informe um valor maior que zero.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
             }
+
+            if (pagamento > saldoDevedor)
+            {
+                var opcao = MessageBox.Show(
+                    $"O valor informado ({pagamento:C2}) é maior que o débito do cliente ({saldoDevedor:C2}).\n\n" +
+                    "Deseja registrar apenas o valor total devido, quitando o débito?",
+                    "Valor acima do débito",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (opcao != DialogResult.Yes)
+                    return;
+
+                pagamento = saldoDevedor;
+            }
+
+            await _clienteService.ReceberFiadoAsync(_clienteSelecionado.Id, pagamento);
+
+            if (pagamento >= saldoDevedor)
+            {
+                MessageBox.Show($"Débito de {_clienteSelecionado.Nome} quitado ({pagamento:C2})!",
+                    "Sucesso", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            else
+            {
+                MessageBox.Show($"Pagamento parcial de {pagamento:C2} registrado.\nSaldo restante: {saldoDevedor - pagamento:C2}",
+                    "Sucesso", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+
+            await CarregarAsync();
         }
 
         private void LimparCampos()

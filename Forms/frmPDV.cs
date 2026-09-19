@@ -205,7 +205,7 @@ namespace PDVStore.Forms
 
         private void ConfigureItensGrid()
         {
-            dgvItens.Columns.Add(new DataGridViewTextBoxColumn { Name = "Produto", HeaderText = "Produto", DataPropertyName = "Produto.Nome", Width = 280 });
+            dgvItens.Columns.Add(new DataGridViewTextBoxColumn { Name = "Produto", HeaderText = "Produto", DataPropertyName = "NomeProduto", Width = 280 });
             dgvItens.Columns.Add(new DataGridViewTextBoxColumn { Name = "Qtd", HeaderText = "Qtd", DataPropertyName = "Quantidade", Width = 70 });
             dgvItens.Columns.Add(new DataGridViewTextBoxColumn
             {
