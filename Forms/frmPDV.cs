@@ -5,7 +5,9 @@ using PDVStore.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Printing;
 using System.Linq;
+using System.Text;
 using System.Windows.Forms;
 
 namespace PDVStore.Forms
@@ -32,9 +34,13 @@ namespace PDVStore.Forms
         private ComboBox cmbFormaPagamento = null!;
         private ComboBox cmbCliente = null!;
         private Button btnFinalizar = null!;
+        private TextBox txtRecibo = null!;
 
         private List<Cliente> _clientes = new();
         private List<Produto> _produtos = new();
+
+        private PrintDocument? _printDocument;
+        private string? _reciboTextoParaImprimir;
 
         public frmPDV(VendaService vendaService, EstoqueService estoqueService,
                       CaixaService caixaService, ClienteService clienteService)
@@ -182,6 +188,25 @@ namespace PDVStore.Forms
 
             Controls.Add(grpCarrinho);
             Controls.Add(grpPagamento);
+
+            // ===== Recibo =====
+            var grpRecibo = new GroupBox { Text = "Recibo", Location = new Point(1370, 70), Size = new Size(520, 560) };
+
+            txtRecibo = new TextBox
+            {
+                Location = new Point(10, 24),
+                Size = new Size(500, 520),
+                Multiline = true,
+                ReadOnly = true,
+                ScrollBars = ScrollBars.Vertical,
+                WordWrap = false,
+                Font = new Font("Courier New", 10F),
+                BackColor = Color.White,
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
+            };
+
+            grpRecibo.Controls.Add(txtRecibo);
+            Controls.Add(grpRecibo);
         }
 
         private void ConfigureProdutosGrid()
@@ -360,6 +385,92 @@ namespace PDVStore.Forms
 
         private decimal _troco;
 
+        private string GerarReciboTexto(Venda venda, Cliente? cliente)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("===============================================");
+            sb.AppendLine("                   RECIBO DE VENDA");
+            sb.AppendLine("===============================================");
+            sb.AppendLine($"Venda Nº: {venda.Id}");
+            sb.AppendLine($"Data: {venda.DataVenda.ToLocalTime():dd/MM/yyyy HH:mm:ss}");
+            if (Session.CurrentUser != null)
+                sb.AppendLine($"Operador: {Session.CurrentUser.Nome}");
+            sb.AppendLine("-----------------------------------------------");
+            sb.AppendLine($"{"Produto",-30}{"Qtd",4}{"Valor Unit.",12}");
+            sb.AppendLine("-----------------------------------------------");
+            foreach (var item in _viewModel.Itens)
+            {
+                var nome = string.IsNullOrWhiteSpace(item.NomeProduto) ? "Item" : item.NomeProduto;
+                sb.AppendLine($"{nome,-30}{item.Quantidade,4}{item.PrecoUnitario,12:C2}");
+            }
+            sb.AppendLine("-----------------------------------------------");
+            if (venda.Desconto > 0)
+                sb.AppendLine($"{"Desconto:",-30}{venda.Desconto,16:C2}");
+            sb.AppendLine($"{"TOTAL:",-30}{venda.ValorTotal,16:C2}");
+            sb.AppendLine("-----------------------------------------------");
+            sb.AppendLine($"Forma de pagamento: {venda.FormaPagamento}");
+            if (venda.FormaPagamento == "Dinheiro" && _troco > 0)
+                sb.AppendLine($"Troco: {_troco:C2}");
+            if (venda.FormaPagamento == "Fiado" && cliente != null)
+            {
+                sb.AppendLine();
+                sb.AppendLine($"Cliente: {cliente.Nome}");
+                sb.AppendLine();
+                sb.AppendLine("_______________________________________________");
+                sb.AppendLine("            Assinatura do cliente");
+            }
+            return sb.ToString();
+        }
+
+        private string SalvarRecibo(string texto)
+        {
+            var pasta = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Recibos");
+            Directory.CreateDirectory(pasta);
+            var caminho = Path.Combine(pasta, $"Recibo_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
+            File.WriteAllText(caminho, texto, Encoding.UTF8);
+            return caminho;
+        }
+
+        private void ConfigurarImpressao()
+        {
+            _printDocument = new PrintDocument();
+            _printDocument.PrintPage += ImprimirRecibo_PrintPage;
+        }
+
+        private void ImprimirRecibo_PrintPage(object? sender, System.Drawing.Printing.PrintPageEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(_reciboTextoParaImprimir))
+                return;
+
+            using var fonte = new Font("Courier New", 10F);
+            var linhas = _reciboTextoParaImprimir.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            float y = e.MarginBounds.Top;
+            foreach (var linha in linhas)
+            {
+                e.Graphics!.DrawString(linha, fonte, Brushes.Black, e.MarginBounds.Left, y);
+                y += fonte.GetHeight(e.Graphics);
+            }
+        }
+
+        private void ImprimirRecibo()
+        {
+            if (_printDocument == null)
+                ConfigurarImpressao();
+
+            using var dlg = new PrintDialog { Document = _printDocument, UseEXDialog = true };
+            if (dlg.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            try
+            {
+                _printDocument!.Print();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erro ao imprimir recibo: {ex.Message}", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         private async void FinalizarVenda(object? sender, EventArgs e)
         {
             if (_viewModel.Itens.Count == 0)
@@ -439,7 +550,19 @@ namespace PDVStore.Forms
                 if (formaPagamento == "Fiado" && cliente != null)
                     mensagem += $"\nCliente: {cliente.Nome}";
 
+                var reciboTexto = GerarReciboTexto(vendaRegistrada, cliente);
+                var caminhoRecibo = SalvarRecibo(reciboTexto);
+                mensagem += $"\nRecibo salvo em:\n{caminhoRecibo}";
+
                 MessageBox.Show(mensagem, "Sucesso", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                txtRecibo.Text = reciboTexto;
+
+                if (MessageBox.Show("Imprimir o recibo?", "Impressão", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                {
+                    _reciboTextoParaImprimir = reciboTexto;
+                    ImprimirRecibo();
+                }
 
                 LimparVenda(null, EventArgs.Empty);
                 await CarregarClientesAsync();
