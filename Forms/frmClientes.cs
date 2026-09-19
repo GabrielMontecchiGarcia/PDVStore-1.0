@@ -227,11 +227,12 @@ namespace PDVStore.Forms
                 cliente.Telefone = Mascaras.FormatarTelefone(txtTelefone.Text);
                 cliente.Email = email;
                 cliente.Endereco = txtEndereco.Text.Trim();
-                cliente.LimiteCredito = decimal.TryParse(txtLimite.Text, out decimal limite) ? limite : 0;
+                cliente.LimiteCredito = Mascaras.ParseDecimal(txtLimite.Text);
 
                 await _clienteService.SalvarAsync(cliente);
 
-                MessageBox.Show("Cliente salvo com sucesso!", "Sucesso", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show($"Cliente salvo com sucesso!\nLimite de crédito: {cliente.LimiteCredito:C2}",
+                    "Sucesso", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 await CarregarAsync();
                 LimparCampos();
             }
