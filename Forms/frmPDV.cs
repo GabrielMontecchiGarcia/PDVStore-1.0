@@ -371,10 +371,26 @@ namespace PDVStore.Forms
             var formaPagamento = cmbFormaPagamento.Text;
             var usuario = Session.CurrentUser;
 
-            if (formaPagamento == "Fiado" && ObterClienteSelecionado() == null)
+            if (formaPagamento == "Fiado")
             {
-                MessageBox.Show("Venda fiada exige a seleção de um cliente.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                var clienteFiado = ObterClienteSelecionado();
+                if (clienteFiado == null)
+                {
+                    MessageBox.Show("Venda fiada exige a seleção de um cliente.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                if (clienteFiado.LimiteCredito > 0 &&
+                    clienteFiado.SaldoDevedor + _viewModel.Total > clienteFiado.LimiteCredito)
+                {
+                    MessageBox.Show(
+                        "Crédito insuficiente para venda fiada.\n\n" +
+                        $"Limite de crédito: {clienteFiado.LimiteCredito:C2}\n" +
+                        $"Débito atual: {clienteFiado.SaldoDevedor:C2}\n" +
+                        $"Valor da venda: {_viewModel.Total:C2}",
+                        "Crédito insuficiente", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
             }
 
             if (formaPagamento == "Dinheiro" && _troco < 0)
