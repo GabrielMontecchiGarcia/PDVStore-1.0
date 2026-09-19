@@ -26,6 +26,12 @@ namespace PDVStore.Forms
         private string _telefoneOriginal = string.Empty;
         private string _emailOriginal = string.Empty;
 
+        // CONSTRUTOR
+        // O que faz: guarda o FornecedorService e monta a interface com BuildUI().
+        // Por que existe: fornecedores são a fonte de mercadorias do PDV; a tela permite
+        //   cadastrar, editar e desativar sem apagar o histórico de compras.
+        // Dependências: recebe FornecedorService por injeção; no Load executa
+        //   CarregarAsync() para listar os fornecedores cadastrados.
         public frmFornecedores(FornecedorService fornecedorService)
         {
             _fornecedorService = fornecedorService ?? throw new ArgumentNullException(nameof(fornecedorService));
@@ -33,6 +39,11 @@ namespace PDVStore.Forms
             Load += async (_, _) => await CarregarAsync();
         }
 
+        // O que faz: cria os campos de cadastro, botões de ação e o grid de fornecedores.
+        // Por que existe: formulário montado em código (sem .Designer); a disposição dos
+        //   controles segue o mesmo padrão visual das outras telas de cadastro.
+        // Dependências: cria dgvFornecedores e liga os TextChanged de máscara (CNPJ/
+        //   telefone), SelectionChanged do grid e cliques de Salvar/Novo/Desativar.
         private void BuildUI()
         {
             Text = "Fornecedores";
@@ -97,6 +108,10 @@ namespace PDVStore.Forms
             Controls.Add(dgvFornecedores);
         }
 
+        // O que faz: busca todos os fornecedores e preenche o dgvFornecedores.
+        // Por que existe: mantém a lista da tela atualizada; é chamado no Load e após
+        //   salvar ou desativar um fornecedor.
+        // Dependências: chama FornecedorService.ListarAsync() e liga o resultado ao grid.
         private async Task CarregarAsync()
         {
             try
@@ -110,6 +125,12 @@ namespace PDVStore.Forms
             }
         }
 
+        // O que faz: ao selecionar uma linha, guarda o fornecedor em _fornecedorSelecionado
+        //   e preenche os campos com os dados dele.
+        // Por que existe: permite reutilizar a tela para editar e desativar o fornecedor
+        //   correto, sem redigitar os dados (regra de UX).
+        // Dependências: disparado por dgvFornecedores.SelectionChanged; aplica máscaras
+        //   via Mascaras e guarda os valores originais para validação no Salvar.
         private void SelecionarFornecedor()
         {
             if (dgvFornecedores.CurrentRow?.DataBoundItem is Fornecedor f)
@@ -125,10 +146,26 @@ namespace PDVStore.Forms
             }
         }
 
+        // EVENTO - digitação no campo CNPJ
+        // O que faz: aplica a máscara de CNPJ enquanto o usuário digita.
+        // Por que existe: mantém o documento padronizado (regra fiscal) e evita salvar
+        //   um CNPJ com formatação inconsistente.
+        // Dependências: chamado pelo TextChanged; delega a AplicarMascara() com
+        //   Mascaras.FormatarCpfCnpj (que também cobre CNPJ).
         private void TxtCnpj_TextChanged(object? sender, EventArgs e) => AplicarMascara(txtCnpj, Mascaras.FormatarCpfCnpj);
 
+        // EVENTO - digitação no campo Telefone
+        // O que faz: aplica a máscara de telefone com DDD durante a digitação.
+        // Por que existe: padroniza o contato do fornecedor e garante o mínimo de 10
+        //   dígitos na validação do salvar.
+        // Dependências: chamado pelo TextChanged; delega a AplicarMascara() com
+        //   Mascaras.FormatarTelefone (Helpers).
         private void TxtTelefone_TextChanged(object? sender, EventArgs e) => AplicarMascara(txtTelefone, Mascaras.FormatarTelefone);
 
+        // O que faz: aplica o formatador recebido sobre o conteúdo do TextBox.
+        // Por que existe: alterar txt.Text dentro de TextChanged dispara o evento de novo;
+        //   o flag _mascaraAplicando corta esse loop (técnica didática de máscara).
+        // Dependências: genérico — chamado por TxtCnpj_TextChanged e TxtTelefone_TextChanged.
         private void AplicarMascara(TextBox txt, Func<string?, string> formatar)
         {
             if (_mascaraAplicando) return;
@@ -138,6 +175,11 @@ namespace PDVStore.Forms
             _mascaraAplicando = false;
         }
 
+        // O que faz: valida nome, CNPJ, telefone e e-mail e salva o fornecedor.
+        // Por que existe: implementa as regras de cadastro — CNPJ obrigatório/válido,
+        //   telefone mínimo de 10 dígitos e e-mail válido; revalida só o que mudou.
+        // Dependências: usa Mascaras (SomenteDigitos, ValidarCnpj, ValidarEmail) e
+        //   FornecedorService.SalvarAsync(); ao final chama CarregarAsync() e LimparCampos().
         private async Task SalvarAsync()
         {
             if (string.IsNullOrWhiteSpace(txtNome.Text))
@@ -199,6 +241,11 @@ namespace PDVStore.Forms
             }
         }
 
+        // O que faz: marca o fornecedor selecionado como inativo no banco.
+        // Por que existe: desativar preserva o histórico de compras do fornecedor (não é
+        //   uma exclusão física), evitando erros contábeis em NF-e/relatórios.
+        // Dependências: chama FornecedorService.AtualizarStatusAsync(id, false); depois
+        //   recarrega o grid e limpa os campos.
         private async Task DesativarAsync()
         {
             if (_fornecedorSelecionado == null)
@@ -213,6 +260,11 @@ namespace PDVStore.Forms
             LimparCampos();
         }
 
+        // O que faz: limpa os campos e zera _fornecedorSelecionado (modo novo).
+        // Por que existe: prepara a tela para um novo cadastro; também remove os valores
+        //   "originais" usados para decidir o que validar no salvar.
+        // Dependências: manipula diretamente os TextBoxes; chamado pelo botão "Novo"
+        //   (lambda), por SalvarAsync() e DesativarAsync().
         private void LimparCampos()
         {
             txtNome.Clear();

@@ -16,6 +16,9 @@ namespace PDVStore.Models
         public int EstoqueMinimo { get; set; } = 0;
 
         // Convenience property usado pelas telas; não é mapeado como coluna
+        // Propriedade computada de conveniência: apenas espelha o campo Estoque, mas expõe a
+        // nomenclatura "EstoqueAtual" que várias telas esperam. Marcada com [NotMapped]
+        // para o EF Core não criar uma coluna duplicada no banco de dados.
         [NotMapped]
         public int EstoqueAtual
         {

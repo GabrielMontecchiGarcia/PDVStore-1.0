@@ -13,6 +13,11 @@ namespace PDVStore.Forms
         private readonly EstoqueService _estoqueService;
         private Produto? _produtoSelecionado;
 
+        // CONSTRUTOR
+        // O que faz: armazena o EstoqueService e configura o formulário.
+        // Por que existe: o frmEstoque tem arquivo .Designer; aqui apenas guardamos o
+        //   serviço e delegamos a configuração inicial para ConfigurarFormulario().
+        // Dependências: recebe EstoqueService por injeção (Services).
         public frmEstoque(EstoqueService estoqueService)
         {
             _estoqueService = estoqueService ?? throw new ArgumentNullException(nameof(estoqueService));
@@ -20,11 +25,22 @@ namespace PDVStore.Forms
             ConfigurarFormulario();
         }
 
+        // EVENTO - Load do formulário (async)
+        // O que faz: carrega a lista de produtos assim que a janela é exibida.
+        // Por que existe: o operador deve ver o estoque atual imediatamente ao abrir a
+        //   tela; é disparado uma única vez pelo Windows Forms.
+        // Dependências: registrado em ConfigurarFormulario() (Load += Form_Load);
+        //   chama CarregarProdutosAsync() sem filtro (lista completa).
         private async void Form_Load(object? sender, EventArgs e)
         {
             await CarregarProdutosAsync();
         }
 
+        // O que faz: busca produtos (todos ou por filtro de busca) e liga no dgvProdutos.
+        // Por que existe: centraliza a atualização do grid — usada no Load, na busca e
+        //   após registrar um movimento (mantendo o filtro digitado pelo usuário).
+        // Dependências: usa EstoqueService.GetAllAsync() ou BuscarAsync(filtro);
+        //   alimenta dgvProdutos e trata erros com MessageBox.
         private async Task CarregarProdutosAsync(string filtro = "")
         {
             try
@@ -41,6 +57,11 @@ namespace PDVStore.Forms
             }
         }
 
+        // O que faz: ajusta título, combobox de tipo de movimento e colunas do grid.
+        // Por que existe: algumas configurações não cabem no .Designer (carregar no Load,
+        //   evitar colunas duplicadas e estilizar a grade) — centraliza-as aqui.
+        // Dependências: registra Form_Load e adiciona os botões de exportar PDF/Excel;
+        //   é chamado pelo construtor.
         private void ConfigurarFormulario()
         {
             this.Text = "Gestão de Estoque - Entrada / Saída";
@@ -74,11 +95,21 @@ namespace PDVStore.Forms
             this.Controls.Add(btnExportarExcel);
         }
 
+        // EVENTO - botão "Buscar" (async)
+        // O que faz: recarrega o grid aplicando o texto digitado em txtBuscar.
+        // Por que existe: permite localizar um produto pelo nome/código rapidamente,
+        //   especialmente quando o cadastro é grande (regra de UX).
+        // Dependências: chama CarregarProdutosAsync(txtBuscar.Text.Trim()).
         private async void btnBuscar_Click(object sender, EventArgs e)
         {
             await CarregarProdutosAsync(txtBuscar.Text.Trim());
         }
 
+        // EVENTO - troca do tipo de movimento
+        // O que faz: muda a cor do botão de confirmar entre verde (Entrada) e vermelho (Saída).
+        // Por que existe: dá feedback visual imediato sobre a operação que será executada,
+        //   evitando que o operador confunda entrada com saída (regra de UX).
+        // Dependências: lê cmbTipoMovimento.Text e ajusta btnConfirmarMovimento.BackColor.
         private void cmbTipoMovimento_SelectedIndexChanged(object sender, EventArgs e)
         {
             btnConfirmarMovimento.BackColor = cmbTipoMovimento.Text == "Entrada"
@@ -86,6 +117,12 @@ namespace PDVStore.Forms
                 : System.Drawing.Color.DarkRed;
         }
 
+        // EVENTO - seleção de produto no grid
+        // O que faz: guarda o produto escolhido em _produtoSelecionado e mostra o nome
+        //   com o estoque atual no lblProdutoSelecionado.
+        // Por que existe: o movimento precisa saber sobre qual produto agir; sem seleção,
+        //   o botão "Confirmar" avisaria que faltou escolher (regra de segurança da operação).
+        // Dependências: lê dgvProdutos.CurrentRow e atualiza o label e o campo privado.
         private void dgvProdutos_SelectionChanged(object sender, EventArgs e)
         {
             if (dgvProdutos.CurrentRow?.DataBoundItem is Produto produto)
@@ -95,6 +132,12 @@ namespace PDVStore.Forms
             }
         }
 
+        // EVENTO - botão "Confirmar movimento" (async)
+        // O que faz: valida produto e quantidade e chama o serviço de entrada/saída.
+        // Por que existe: registra a movimentação de estoque escolhendo Entrada (compra/
+        //   devolução) ou Saída (venda/ajuste), sempre com motivo para auditoria.
+        // Dependências: usa EstoqueService.AdicionarEstoqueAsync() ou BaixarEstoqueAsync() e
+        //   depois CarregarProdutosAsync() para refletir a nova quantidade no grid.
         private async void btnConfirmarMovimento_ClickAsync(object sender, EventArgs e)
         {
             if (_produtoSelecionado == null)

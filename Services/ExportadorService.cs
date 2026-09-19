@@ -17,6 +17,12 @@ namespace PDVStore.Services
     /// </summary>
     public static class ExportadorService
     {
+        // Exporta o conteúdo de um DataGridView para um arquivo PDF. Fluxo: abre o
+        // SaveFileDialog (filtro *.pdf) e, se o usuário confirmar, chama CriarPdf
+        // para gerar o arquivo. Trata exceções exibindo MessageBox de erro, ou
+        // sucesso em caso de êxito. Usado pelas telas que possuem botão
+        // "Exportar PDF". Depende da biblioteca iText (PdfWriter/PdfDocument) e
+        // do helper ColunasExportaveis para definir quais colunas entram.
         public static void ExportarPdf(DataGridView grid, string titulo, string nomeArquivo)
         {
             using var sfd = new SaveFileDialog
@@ -43,6 +49,11 @@ namespace PDVStore.Services
             }
         }
 
+        // Exporta o conteúdo de um DataGridView para uma planilha Excel (.xlsx),
+        // seguindo o mesmo padrão do PDF: SaveFileDialog, chamada a CriarExcel e
+        // mensagens de sucesso/erro via MessageBox. Usado pelas telas com botão
+        // "Exportar Excel". Depende da biblioteca EPPlus (ExcelPackage) e do
+        // helper ColunasExportaveis. Não altera os dados do grid (somente leitura).
         public static void ExportarExcel(DataGridView grid, string titulo, string nomeArquivo)
         {
             using var sfd = new SaveFileDialog
@@ -69,12 +80,22 @@ namespace PDVStore.Services
             }
         }
 
+        // Retorna somente as colunas que DEVEM ser exportadas: exclui colunas
+        // invisíveis e colunas de interação (imagem, botão e checkbox, ex.:
+        // "Deletar"/"Excluir"). É a regra comum aos PDFs e Excels, garantindo que
+        // o arquivo exportado contenha apenas dados úteis. Depende do grid
+        // passado pelo chamador (ExportarPdf/ExportarExcel).
         private static System.Collections.Generic.List<DataGridViewColumn> ColunasExportaveis(DataGridView grid) =>
             grid.Columns
                 .Cast<DataGridViewColumn>()
                 .Where(c => c.Visible && c is not DataGridViewImageColumn && c is not DataGridViewButtonColumn && c is not DataGridViewCheckBoxColumn)
                 .ToList();
 
+        // Gera o documento PDF em si usando iText: cria PdfWriter/PdfDocument/Document,
+        // adiciona o título centralizado, constrói uma tabela com as colunas
+        // exportáveis e as linhas do grid, calcula o rodapé "Gerado em" e salva
+        // no caminho. Se não houver colunas exportáveis, encerra sem erro. É
+        // chamado SOMENTE por ExportarPdf após o usuário escolher o local.
         private static void CriarPdf(DataGridView grid, string titulo, string caminho)
         {
             using var writer = new PdfWriter(caminho);
@@ -109,6 +130,11 @@ namespace PDVStore.Services
                 .SetMarginTop(30));
         }
 
+        // Gera a planilha Excel usando EPPlus: define a licença (NonCommercialPersonal,
+        // exigência da biblioteca), cria uma planilha (nome limitado a 31
+        // caracteres, restrição do Excel), escreve o cabeçalho na linha 1 e os
+        // valores das linhas a partir da linha 2, ajusta a largura das colunas
+        // (AutoFitColumns) e salva o arquivo. Chamado somente por ExportarExcel.
         private static void CriarExcel(DataGridView grid, string titulo, string caminho)
         {
             ExcelPackage.License.SetNonCommercialPersonal("PDVStore");

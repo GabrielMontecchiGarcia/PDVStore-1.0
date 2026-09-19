@@ -21,6 +21,9 @@ public class VerificacaoSistemaServiceTests
     private SqliteConnection _conexao = null!;
     private PDVContext _context = null!;
 
+    // Método de setup executado ANTES de cada teste: abre um SQLite em memória e cria o
+    // contexto SEM EnsureCreated. Isso permite que as migrações reais sejam aplicadas,
+    // simulando uma instalação limpa do sistema.
     [SetUp]
     public async Task Setup()
     {
@@ -35,6 +38,8 @@ var options = new DbContextOptionsBuilder<PDVContext>()
         // Sem EnsureCreated: as migrações criam o esquema.
     }
 
+    // Método de limpeza executado DEPOIS de cada teste: libera o contexto e a conexão de
+    // memória, devolvendo os recursos utilizados pela verificação.
     [TearDown]
     public async Task TearDown()
     {
@@ -42,6 +47,10 @@ var options = new DbContextOptionsBuilder<PDVContext>()
         _conexao.Dispose();
     }
 
+    // Cenário: execução completa da verificação pré-login em uma base recém-criada.
+    // Valida que os quatro passos (configuração, banco, migrações e usuário admin) são
+    // executados e todos passam. Protege o bootstrap do sistema: sem essa verificação, o
+    // login nem mesmo tenta abrir o banco.
     [Test]
     public async Task VerificarAsync_FluxoCompleto_RetornaSucesso()
     {
@@ -59,6 +68,10 @@ var options = new DbContextOptionsBuilder<PDVContext>()
         Assert.That(passos[3].Descricao, Does.Contain("administrativo"));
     }
 
+    // Cenário: usar a verificação para aplicar as migrações em uma base limpa.
+    // Valida que, após a verificação, o usuário administrador padrão (admin123) existe e
+    // autentica. Protege a regra de que toda instalação ganha um admin inicial para o
+    // primeiro acesso.
     [Test]
     public async Task VerificarAsync_ComMigracoesCriaUsuarioAdministrador()
     {

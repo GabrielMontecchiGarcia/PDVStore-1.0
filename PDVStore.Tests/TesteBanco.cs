@@ -15,6 +15,9 @@ public abstract class TesteBanco
     protected SqliteConnection _conexao = null!;
     protected PDVContext Context = null!;
 
+    // Método de setup executado ANTES de cada teste: cria uma conexão SQLite em memória
+    // própria, abre o PDVContext e gera o esquema (EnsureCreated). Garante que cada
+    // teste começa com um banco limpo e isolado dos demais.
     [SetUp]
     public void BaseSetup()
     {
@@ -29,6 +32,9 @@ public abstract class TesteBanco
         Context.Database.EnsureCreated();
     }
 
+    // Método de limpeza executado DEPOIS de cada teste: libera o contexto e fecha a
+    // conexão SQLite. Garante que os recursos sejam devolvidos e que não haja
+    // "vazamento" de estado entre um teste e outro.
     [TearDown]
     public void BaseTearDown()
     {

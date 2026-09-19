@@ -21,7 +21,12 @@ namespace PDVStore.Forms
             public TipoPermissao Valor { get; init; }
         }
 
-        // Construtor para Novo Usuário
+        // CONSTRUTOR - MODO "NOVO USUÁRIO"
+        // O que faz: abre o formulário limpo para criar um usuário em vez de editá-lo.
+        // Por que existe: com dois construtores, a mesma tela serve tanto para cadastrar
+        //   quanto para editar; aqui _usuarioEmEdicao fica null, indicando inclusão.
+        // Dependências: recebe o PDVContext (EF Core) para salvar no banco e inicia a UI
+        //   via CarregarImagemPadrao() e PreencherOpcoesPermissao().
         public frmCadastroUsuario(PDVContext context)
         {
             InitializeComponent();
@@ -32,7 +37,12 @@ namespace PDVStore.Forms
             cboPermissao.SelectedValue = TipoPermissao.Operador; // Padrão: Operador (Caixa)
         }
 
-        // Construtor para Edição
+        // CONSTRUTOR - MODO "EDIÇÃO"
+        // O que faz: carrega os dados de um usuário existente na tela para alterá-lo.
+        // Por que existe: o nome é bloqueado (não pode ser trocado) e a permissão
+        //   só muda se o operador logado for Administrador (regra de negócio).
+        // Dependências: recebe PDVContext e o UsuarioCaixa a editar; chama
+        //   PreencherOpcoesPermissao() e PreencherDadosParaEdicao().
         public frmCadastroUsuario(PDVContext context, UsuarioCaixa usuario)
         {
             InitializeComponent();
@@ -43,6 +53,11 @@ namespace PDVStore.Forms
             PreencherDadosParaEdicao();
         }
 
+        // O que faz: preenche o ComboBox cboPermissao com os três perfis possíveis.
+        // Por que existe: o usuário precisa escolher entre Operador, Estoquista e
+        //   Administrador; cada perfil libera telas diferentes do PDV.
+        // Dependências: usa o enum TipoPermissao (PDVStore.Models); nada de banco aqui,
+        //   apenas monta o DataSource exibido no formulário.
         private void PreencherOpcoesPermissao()
         {
             cboPermissao.DataSource = new[]
@@ -55,6 +70,11 @@ namespace PDVStore.Forms
             cboPermissao.ValueMember = nameof(OpcaoPermissao.Valor);
         }
 
+        // O que faz: exibe a imagem padrão de usuário no PictureBox picFoto.
+        // Por que existe: ao cadastrar um usuário novo, a foto pode ficar vazia; uma
+        //   imagem padrão melhora a apresentação visual (UX).
+        // Dependências: tenta ler um PNG em Resources/Images; se não existir, usa o
+        //   recurso embutido Properties.Resources.user_default; em caso de erro zera a foto.
         private void CarregarImagemPadrao()
         {
             try
@@ -73,6 +93,11 @@ namespace PDVStore.Forms
             }
         }
 
+        // O que faz: copia os dados do usuário em edição para os campos da tela.
+        // Por que existe: permite visualizar e ajustar permissão/foto sem digitar tudo
+        //   de novo; o nome fica desabilitado por regra de negócio (identidade do login).
+        // Dependências: lê _usuarioEmEdicao (set pelo construtor de edição) e o arquivo
+        //   de foto salvo em disco (UsuarioCaixa.FotoPath).
         private void PreencherDadosParaEdicao()
         {
             if (_usuarioEmEdicao == null) return;
@@ -88,6 +113,12 @@ namespace PDVStore.Forms
             }
         }
 
+        // EVENTO - botão "Escolher Foto"
+        // O que faz: abre um OpenFileDialog e carrega a imagem escolhida no picFoto.
+        // Por que existe: dá ao usuário a opção de personalizar a foto no cadastro (UX);
+        //   valida que o arquivo é imagem e reduz dimensões maiores que 800px (memória).
+        // Dependências: guarda o caminho em _caminhoFotoSelecionada, usado depois por
+        //   SalvarFotoUsuario() quando o formulário é salvo.
         private void btnEscolherFoto_Click(object sender, EventArgs e)
         {
             using var ofd = new OpenFileDialog
@@ -149,9 +180,21 @@ namespace PDVStore.Forms
             }
         }
 
-        // Designer may reference btnEscolherFoto_Click_1; provide a small adapter.
+        // ADAPTADOR DO DESIGNER
+        // O que faz: encaminha o clique para btnEscolherFoto_Click (o handler original).
+        // Por que existe: o Visual Studio, em alguns casos, registra no .Designer.cs o
+        //   primeiro handler e depois gera uma cópia "_1"; manter este adaptador evita
+        //   quebrar o vínculo do designer sem duplicar a lógica de carregar a imagem.
+        // Dependências: chamado pelo Windows Forms; delega para o handler principal.
         private void btnEscolherFoto_Click_1(object sender, EventArgs e) => btnEscolherFoto_Click(sender, e);
 
+        // EVENTO - botão "Salvar" (async)
+        // O que faz: valida nome/senha/confirmação, cria ou atualiza o UsuarioCaixa e
+        //   persiste no banco (SaveChangesAsync).
+        // Por que existe: centraliza a regra de cadastro — nome único, senha mínima de
+        //   6 caracteres e troca de permissão apenas se o logado for Administrador.
+        // Dependências: usa PDVContext (EF Core), Session.CurrentUser (usuário logado),
+        //   SalvarFotoUsuario(), Serilog (Log) e _errorProvider para destacar erros.
         private async void btnSalvar_Click(object sender, EventArgs e)
         {
             _errorProvider.Clear();
@@ -230,6 +273,11 @@ namespace PDVStore.Forms
             }
         }
 
+        // O que faz: copia a foto selecionada para a pasta Resources/Users e retorna o caminho.
+        // Por que existe: mantém as fotos dos usuários em um local padronizado do sistema,
+        //   evitando perder o arquivo se a origem for removida; sem foto nova, preserva a anterior.
+        // Dependências: usa _caminhoFotoSelecionada (set em btnEscolherFoto_Click), o diretório
+        //   base do aplicativo e Serilog para registrar falhas sem derrubar o salvamento.
         private string? SalvarFotoUsuario()
         {
             if (string.IsNullOrEmpty(_caminhoFotoSelecionada))
@@ -253,6 +301,11 @@ namespace PDVStore.Forms
             }
         }
 
+        // EVENTO - botão "Cancelar"
+        // O que faz: fecha o formulário descartando qualquer alteração não salva.
+        // Por que existe: oferece ao usuário uma saída sem consequências (UX); nada é
+        //   gravado, pois o banco só é alterado em btnSalvar_Click.
+        // Dependências: nenhuma além do próprio formulário (this.Close).
         private void btnCancelar_Click(object sender, EventArgs e)
         {
             this.Close();

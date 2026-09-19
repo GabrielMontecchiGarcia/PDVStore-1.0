@@ -6,6 +6,10 @@ namespace PDVStore.Tests;
 [TestFixture]
 public class HelpersComunsTests
 {
+    // Cenário: obtenção da connection string padrão do sistema.
+    // Valida que ConnectionHelper devolve uma string preenchida, apontando para um
+    // banco ("Database=") no SQL Server Express LocalDB. Protege a configuração de
+    // infraestrutura necessária para a aplicação iniciar.
     [Test]
     public void GetConnectionString_ValidaEDefineBanco()
     {
@@ -16,6 +20,10 @@ public class HelpersComunsTests
         Assert.That(cs, Does.Contain("localdb").IgnoreCase);
     }
 
+    // Cenário: resumo legível da connection string.
+    // Valida que a versão "didática" da string expõe servidor e banco de dados.
+    // Protege a tela de diagnóstico/verificação do sistema, que apresenta essas
+    // informações ao usuário de forma compreensível.
     [Test]
     public void GetReadableConnectionStringInfo_DetalhaComponentes()
     {

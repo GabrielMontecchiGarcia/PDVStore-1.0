@@ -36,9 +36,21 @@ public sealed class SetupContext
 
     public List<Requisito> Requisitos { get; } = new();
 
+    // Propriedade computada (sem armazenamento): devolve a connection string do modo de instalação,
+    // já derivada do nome do banco escolhido pelo usuário.
+    // POR QUE centralizar: todo o código (resumo da tela, migrações, aplicativo) usa a mesma
+    // regra de conexão, evitando que strings soltas se desatualizem em pontos diferentes.
+    // Dependências: InstaladorInfo.ConnectionStringPadrao(NomeBanco) e a propriedade NomeBanco.
     public string ConnectionString
         => InstaladorInfo.ConnectionStringPadrao(NomeBanco);
 
+    // Localiza o arquivo PDVStore.csproj, verificando primeiro o caminho já conhecido e, se
+    // necessário, subindo até 8 níveis de pastas a partir do diretório do executável.
+    // POR QUE subir na árvore: o instalador roda a partir de bin/Debug quando não publicado,
+    // então o .csproj do projeto costuma estar alguns níveis acima; o limite de 8 evita
+    // percorrer o disco inteiro de forma desnecessária.
+    // Dependências: System.IO (File.Exists, DirectoryInfo, Path) e a propriedade CaminhoProjeto;
+    // retorna "" quando o projeto não é encontrado.
     public string LocalizarProjeto()
     {
         if (File.Exists(CaminhoProjeto))

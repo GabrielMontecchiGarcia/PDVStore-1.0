@@ -8,6 +8,9 @@ namespace PDVStore.Tests;
 [TestFixture]
 public class ClienteServiceTests : TesteBanco
 {
+    // Método auxiliar de montagem: cria um cliente no banco com os dados informados
+    // (nome, documento, limite, saldo e situação ativa/inativa). Centraliza a
+    // preparação dos dados para que cada teste foque apenas na regra que valida.
     private async Task<Cliente> CriarClienteAsync(string nome = "José", string? doc = "123.456.789-09",
         decimal limite = 0, decimal saldo = 0, bool ativo = true)
     {
@@ -25,6 +28,9 @@ public class ClienteServiceTests : TesteBanco
         return c;
     }
 
+    // Cenário: clientes ativos, inativos e buscas por nome/documento.
+    // Valida que ListarAsync traz apenas ativos por padrão e que os filtros de nome
+    // e documento funcionam. Protege a consulta usada no lançamento da venda.
     [Test]
     public async Task ListarAsync_FiltraAtivosENomeEDocumento()
     {
@@ -46,6 +52,9 @@ public class ClienteServiceTests : TesteBanco
         Assert.That(todos.Select(c => c.Nome), Is.EqualTo(new[] { "Bruno" }));
     }
 
+    // Cenário: cliente existente e um Id inexistente (999).
+    // Valida que ObterPorIdAsync retorna o cliente ou null. Protege a leitura
+    // individual (edição/ficha do cliente) sem lançar exceção para Ids inválidos.
     [Test]
     public async Task ObterPorIdAsync_RetornaOuNull()
     {
@@ -56,6 +65,9 @@ public class ClienteServiceTests : TesteBanco
         Assert.That(await service.ObterPorIdAsync(999), Is.Null);
     }
 
+    // Cenário: cliente com nome em branco.
+    // Valida a rejeição com ArgumentException mencionando "obrigatório". Protege a
+    // regra de que todo cliente precisa de nome para ser identificado no cadastro.
     [Test]
     public async Task SalvarAsync_NomeObrigatorio_Rejeita()
     {
@@ -64,6 +76,9 @@ public class ClienteServiceTests : TesteBanco
         Assert.That(ex!.Message, Does.Contain("obrigatório"));
     }
 
+    // Cenário: cadastro feliz de um cliente novo.
+    // Valida que o Id é gerado e que CadastradoEm é preenchido na criação. Protege a
+    // rastreabilidade: todo cliente registrado possui data/hora de cadastro.
     [Test]
     public async Task SalvarAsync_NovoCliente_AtribuiIdECadastradoEm()
     {
@@ -77,6 +92,9 @@ public class ClienteServiceTests : TesteBanco
         Assert.That(await Context.Clientes.CountAsync(), Is.EqualTo(1));
     }
 
+    // Cenário: edição de um cliente já existente (limite de crédito e e-mail).
+    // Valida que o update persiste as alterações e NÃO cria um registro duplicado.
+    // Protege a regra de que salvar um cliente existente é atualização, não cópia.
     [Test]
     public async Task SalvarAsync_Update_PersisteAlteracoes()
     {
@@ -93,6 +111,9 @@ public class ClienteServiceTests : TesteBanco
         Assert.That(await Context.Clientes.CountAsync(), Is.EqualTo(1)); // não duplica
     }
 
+    // Cenário: inativar um cliente existente e tentar inativar um Id inexistente.
+    // Valida o retorno true/false e a persistência do status. Protege a inativação
+    // lógica, que impede novas compras sem apagar o histórico de negócios.
     [Test]
     public async Task AtualizarStatusAsync_InativaOuReativaCliente()
     {
@@ -106,6 +127,9 @@ public class ClienteServiceTests : TesteBanco
 
     // ===================== ReceberFiadoAsync =====================
 
+    // Cenário: recebimento de fiado com valor zero.
+    // Valida a rejeição com ArgumentException no parâmetro "valor". Protege a regra
+    // de que pagamentos de fiado só são registrados com valores positivos.
     [Test]
     public async Task ReceberFiadoAsync_ValorNaoPositivo_Rejeita()
     {
@@ -114,6 +138,9 @@ public class ClienteServiceTests : TesteBanco
         Assert.That(ex!.ParamName, Is.EqualTo("valor"));
     }
 
+    // Cenário: recebimento de fiado de um cliente que não existe (999).
+    // Valida o retorno false (falha silenciosa). Protege contra Ids inválidos vindos
+    // da interface, sem derrubar a aplicação com exceção.
     [Test]
     public async Task ReceberFiadoAsync_ClienteInexistente_RetornaFalse()
     {
@@ -121,6 +148,9 @@ public class ClienteServiceTests : TesteBanco
         Assert.That(await service.ReceberFiadoAsync(999, 10m), Is.False);
     }
 
+    // Cenário: cliente com R$ 100 de saldo devedor recebe pagamento parcial de R$ 30.
+    // Valida que o saldo devedor é reduzido corretamente (70). Protege o cálculo da
+    // dívida restante após um acerto parcial do fiado.
     [Test]
     public async Task ReceberFiadoAsync_PagamentoParcial_ReduzSaldo()
     {
@@ -131,6 +161,9 @@ public class ClienteServiceTests : TesteBanco
         Assert.That((await Context.Clientes.FindAsync(c.Id))!.SaldoDevedor, Is.EqualTo(70m));
     }
 
+    // Cenário: cliente com R$ 40 de saldo devedor recebe pagamento de R$ 100 (maior).
+    // Valida que a dívida é quitada e o saldo NÃO fica negativo. Protege a regra de
+    // que um pagamento nunca gera "crédito" (valor negativo) automático no cliente.
     [Test]
     public async Task ReceberFiadoAsync_PagamentoMaiorQueSaldo_QuitaSemNegativar()
     {

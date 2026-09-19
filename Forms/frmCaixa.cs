@@ -18,6 +18,12 @@ namespace PDVStore.Forms
         private Button btnFechar = null!;
         private DataGridView dgvCaixas = null!;
 
+        // CONSTRUTOR
+        // O que faz: grava a dependência CaixaService e monta a interface com BuildUI().
+        // Por que existe: o caixa precisa do serviço para consultar/abrir/fechar; o
+        //   formulário é 100% criado em código, sem arquivo .Designer.
+        // Dependências: recebe CaixaService (Services) por injeção; registra no Load um
+        //   lambda que dispara AtualizarAsync() quando a janela abre.
         public frmCaixa(CaixaService caixaService)
         {
             _caixaService = caixaService ?? throw new ArgumentNullException(nameof(caixaService));
@@ -25,6 +31,11 @@ namespace PDVStore.Forms
             Load += async (_, _) => await AtualizarAsync();
         }
 
+        // O que faz: cria, posiciona e configura todos os controles da tela em código.
+        // Por que existe: frmCaixa não usa arquivo Designer; montar a UI aqui mantém o
+        //   layout (status, botões de operação e grid de histórico) centralizado.
+        // Dependências: cria dgvCaixas (grid de histórico) e liga os botões a lambdas
+        //   assíncronos; quem chama é o construtor e nada mais neste formulário.
         private void BuildUI()
         {
             Text = "Abertura / Fechamento de Caixa";
@@ -94,6 +105,11 @@ namespace PDVStore.Forms
             btnExportarExcel.Click += (_, _) => ExportadorService.ExportarExcel(dgvCaixas, "Histórico de Caixa", $"Caixas_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
         }
 
+        // O que faz: verifica se há caixa aberto e atualiza o status, os botões e o grid.
+        // Por que existe: a interface precisa refletir a regra de negócio — com caixa
+        //   fechado as vendas do PDV ficam bloqueadas (lblStatus avisa o operador).
+        // Dependências: chama CaixaService.ObterCaixaAbertoAsync() e ListarAsync();
+        //   atualiza lblStatus, lblDetalhes, btnAbrir, btnSangria, btnFechar e dgvCaixas.
         private async Task AtualizarAsync()
         {
             var caixa = await _caixaService.ObterCaixaAbertoAsync();
@@ -121,6 +137,11 @@ namespace PDVStore.Forms
             dgvCaixas.DataSource = (await _caixaService.ListarAsync()).ToList();
         }
 
+        // O que faz: pergunta o valor inicial (fundo de troco) e abre o caixa no banco.
+        // Por que existe: toda venda exige caixa aberto; registrar o valor inicial é
+        //   necessário para conferência do fechamento (regra de negócio financeira).
+        // Dependências: usa Session.CurrentUser (quem abre), Helpers.PromptDialog para a
+        //   entrada, CaixaService.AbrirCaixaAsync() e AtualizarAsync() para refrescar a tela.
         private async Task AbrirCaixaAsync()
         {
             if (Models.Session.CurrentUser == null)
@@ -144,6 +165,11 @@ namespace PDVStore.Forms
             }
         }
 
+        // O que faz: registra a retirada de dinheiro do caixa durante o expediente.
+        // Por que existe: a sangria cobre despesas/retiradas do lojista sem precisar fechar
+        //   o caixa; o valor fica guardado para o cálculo do fechamento (regra de negócio).
+        // Dependências: chama CaixaService.ObterCaixaAbertoAsync() e RegistrarSangriaAsync();
+        //   usa Helpers.PromptDialog e atualiza a tela via AtualizarAsync().
         private async Task SangriaAsync()
         {
             var caixa = await _caixaService.ObterCaixaAbertoAsync();
@@ -164,6 +190,11 @@ namespace PDVStore.Forms
             }
         }
 
+        // O que faz: encerra o caixa aberto após confirmação do usuário.
+        // Por que existe: o fechamento calcula o valor final e "congela" o caixa, impedindo
+        //   novas vendas até a próxima abertura (controle financeiro diário).
+        // Dependências: usa CaixaService.ObterCaixaAbertoAsync(), FecharCaixaAsync() e
+        //   ListarAsync() (para exibir o valor final) e atualiza a interface.
         private async Task FecharCaixaAsync()
         {
             var caixa = await _caixaService.ObterCaixaAbertoAsync();

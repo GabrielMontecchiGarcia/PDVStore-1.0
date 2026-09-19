@@ -15,6 +15,15 @@ public static class ProcessUtil
     /// Executa o processo informado e retorna (código de saída, saída completa consolidada).
     /// Linhas de saída/erro são repassadas para <paramref name="onLine"/> quando informado.
     /// </summary>
+    // Executa um processo externo sem janela, capturando stdout e stderr em tempo real e
+    // devolvendo o código de saída junto com a saída consolidada ao final.
+    // POR QUE redirecionar a saída: instalações via linha de comando (dotnet, msiexec) podem
+    // demorar e fracassar silenciosamente; repassar cada linha ao callback onLine permite mostrar
+    // o progresso ao usuário e, ao término, o chamador avalia r.ExitCode para decidir o resultado.
+    // Dependências: System.Diagnostics (Process/ProcessStartInfo), rede de argumentos em
+    // ArgumentList (que evita problemas de aspas em paths com espaços), WaitForExitAsync com
+    // CancellationToken e suporte opcional a variáveis de ambiente extras
+    // (usado para PATH/DOTNET_ROOT nas migrações).
     public static async Task<(int ExitCode, string Output)> RunAsync(
         string fileName,
         IEnumerable<string> arguments,

@@ -15,6 +15,11 @@ namespace PDVStore.Migrations
     [Migration("20260708143442_novojuste")]
     partial class novojuste
     {
+        // ==========================================================================
+        // MÉTODO BuildTargetModel(): monta o "espelho" (snapshot) do banco logo
+        // após esta migration ser aplicada. O EF Core usa esse snapshot para
+        // comparar com o contexto atual e gerar a próxima migration.
+        // ==========================================================================
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

@@ -11,6 +11,8 @@ namespace PDVStore.Tests;
 [TestFixture]
 public class DashboardViewModelTests : TesteBanco
 {
+    // Método auxiliar de montagem: cria o DashboardViewModel com os serviços de
+    // relatório, venda e estoque ligados ao contexto de banco dos testes.
     private async Task<DashboardViewModel> CriarViewModelAsync()
     {
         var relatorio = new RelatorioService(Context);
@@ -19,6 +21,9 @@ public class DashboardViewModelTests : TesteBanco
         return new DashboardViewModel(relatorio, venda, estoque);
     }
 
+    // Método auxiliar de montagem: cadastra um produto com nome, estoque e estoque
+    // mínimo informados. Usado para montar os cenários de "itens mais vendidos" e de
+    // alertas de reposição.
     private async Task<Produto> CriarProdutoAsync(string nome, int estoque, int minimo)
     {
         var p = new Produto { Nome = nome, Preco = 10m, Estoque = estoque, EstoqueMinimo = minimo, Ativo = true };
@@ -27,6 +32,11 @@ public class DashboardViewModelTests : TesteBanco
         return p;
     }
 
+    // Cenário: período com uma venda concluída (R$ 40), movimentações de estoque e
+    // produtos em situações de estoque mínimo diferentes.
+    // Valida que o dashboard preenche todos os indicadores: mais vendidos, alertas de
+    // estoque, total/quantidade, formas de pagamento, vendas e movimentações por dia.
+    // Protege a visão gerencial do PDV, que não pode vir com dados faltando.
     [Test]
     public async Task CarregarDadosAsync_PreencherTodosIndicadores()
     {
@@ -84,6 +94,10 @@ public class DashboardViewModelTests : TesteBanco
         Assert.That(vm.MovimentacoesPorDia[0].Saidas, Is.EqualTo(2));
     }
 
+    // Cenário: período sem vendas e sem movimentações de estoque.
+    // Valida que o dashboard não quebra quando não há dados, zerando/limpando todos os
+    // indicadores. Protege a regra de que telas gerenciais precisam lidar com períodos
+    // vazios de forma previsível.
     [Test]
     public async Task CarregarDadosAsync_SemDados_ZeraTudo()
     {

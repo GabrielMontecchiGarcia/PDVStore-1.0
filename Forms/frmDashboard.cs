@@ -24,6 +24,12 @@ namespace PDVStore.Forms
         private Panel pnlGraficoProdutos = null!;
         private Panel pnlGraficoVendas = null!;
 
+        // CONSTRUTOR
+        // O que faz: injeta o DashboardViewModel e o RelatorioService e monta a interface.
+        // Por que existe: separa a UI (esta forma) da lógica de agregação (ViewModel), o
+        //   que torna o carregamento assíncrono e as exportações mais testáveis.
+        // Dependências: recebe DashboardViewModel e RelatorioService; no Load dispara
+        //   CarregarAsync() para apresentar os dados do período vigente.
         public frmDashboard(DashboardViewModel viewModel, RelatorioService relatorioService)
         {
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
@@ -32,6 +38,11 @@ namespace PDVStore.Forms
             Load += async (_, _) => await CarregarAsync();
         }
 
+        // O que faz: cria os filtros de data, totais, grids e painéis de gráfico em código.
+        // Por que existe: o dashboard resume o desempenho do PDV (faturamento, itens mais
+        //   vendidos, alertas de estoque) numa única tela; montagem 100% em código.
+        // Dependências: cria dgvMaisVendidos, dgvAlertasEstoque, os dois Painel com eventos
+        //   Paint (PnlGraficoProdutos_Paint, PnlGraficoVendas_Paint) e os botões de exportar.
         private void BuildUI()
         {
             Text = "Dashboard & Relatórios";
@@ -123,6 +134,12 @@ namespace PDVStore.Forms
             Controls.Add(grpGraficoVendas);
         }
 
+        // EVENTO - repintura do painel de entradas/saídas
+        // O que faz: desenha o gráfico de barras comparando entradas e saídas do período.
+        // Por que existe: dá uma leitura visual rápida do giro de estoque (entradas de
+        //   compras versus saídas de vendas) nas datas informadas.
+        // Dependências: lê _viewModel.MovimentacoesPorDia e usa o helper
+        //   GraficoDeBarras.Desenhar(); disparado pelo Windows Forms no Paint.
         private void PnlGraficoProdutos_Paint(object? sender, PaintEventArgs e)
         {
             var dados = _viewModel.MovimentacoesPorDia;
@@ -135,6 +152,12 @@ namespace PDVStore.Forms
             GraficoDeBarras.Desenhar(e.Graphics, pnlGraficoProdutos.ClientRectangle, "Entradas vs Saídas de Produtos", rotulos, series);
         }
 
+        // EVENTO - repintura do painel de vendas por dia
+        // O que faz: desenha o gráfico de barras com o faturamento (R$) de cada dia.
+        // Por que existe: mostra a evolução diária das vendas, útil para identificar
+        //   picos e baixas no período selecionado (análise gerencial).
+        // Dependências: lê _viewModel.VendasPorDia e usa o helper GraficoDeBarras.Desenhar();
+        //   disparado pelo Windows Forms no Paint.
         private void PnlGraficoVendas_Paint(object? sender, PaintEventArgs e)
         {
             var dados = _viewModel.VendasPorDia;
@@ -146,6 +169,11 @@ namespace PDVStore.Forms
             GraficoDeBarras.Desenhar(e.Graphics, pnlGraficoVendas.ClientRectangle, "Vendas por Dia", rotulos, series);
         }
 
+        // O que faz: consulta o ViewModel com as datas escolhidas e atualiza toda a tela.
+        // Por que existe: é o "motor" do dashboard — recalcula totais, quantidades, formas
+        //   de pagamento, itens mais vendidos, alertas e força a repintura dos gráficos.
+        // Dependências: usa DashboardViewModel.CarregarDadosAsync() (inicio/fim) e atualiza
+        //   lblTotal, lblQtdVendas, lblPagamentos, dgvMaisVendidos, dgvAlertasEstoque e painéis.
         private async Task CarregarAsync()
         {
             Cursor = Cursors.WaitCursor;
@@ -186,6 +214,12 @@ namespace PDVStore.Forms
             }
         }
 
+        // EVENTO - botão "Exportar PDF"
+        // O que faz: gera relatórios (itens mais vendidos + estoque mínimo) em PDF.
+        // Por que existe: o lojista precisa de relatórios imprimíveis para arquivo e para
+        //   análise fora do sistema; o SaveFileDialog permite escolher o destino.
+        // Dependências: usa RelatorioService.GerarRelatorioItensMaisVendidos (com as datas
+        //   dos filtros), GerarRelatorioEstoqueMinimo() e ExportarPDF().
         private void ExportarPDF(object? sender, EventArgs e)
         {
             var inicio = dtpInicio.Value.Date;
@@ -219,6 +253,12 @@ namespace PDVStore.Forms
             }
         }
 
+        // EVENTO - botão "Exportar Excel"
+        // O que faz: gera relatórios em planilha Excel (itens vendidos + estoque mínimo).
+        // Por que existe: a planilha permite ao gestor filtrar/analisar os dados com
+        //   maior liberdade do que o PDF (versátil para o dia a dia do negócio).
+        // Dependências: gera os mesmos relatórios do PDF via RelatorioService e chama
+        //   ExportarExcel() (estoque sai em arquivo separado "_estoque.xlsx").
         private void ExportarExcel(object? sender, EventArgs e)
         {
             var inicio = dtpInicio.Value.Date;

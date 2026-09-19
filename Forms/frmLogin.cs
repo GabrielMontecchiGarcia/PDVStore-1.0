@@ -12,6 +12,12 @@ namespace PDVStore.Forms
         private readonly UsuarioService _usuarioService;
         private IServiceScope? _sessionScope;
 
+        // Construtor da tela de login.
+        // O QUE FAZ: recebe o IServiceProvider (para criar escopos e resolver o menu
+        // principal via DI) e o UsuarioService (responsável por autenticar usuários).
+        // POR QUE EXISTE: injeta as dependências usadas no fluxo de autenticação, para
+        // que esta tela não precise instanciar serviços diretamente.
+        // QUEM CHAMA: resolvido pelo container DI no Program.cs.
         public frmLogin(IServiceProvider serviceProvider, UsuarioService usuarioService)
         {
             InitializeComponent();
@@ -19,6 +25,14 @@ namespace PDVStore.Forms
             _usuarioService = usuarioService;
         }
 
+        // Handler do botão "Acessar": autentica o usuário e abre o menu principal.
+        // O QUE FAZ: valida os campos, chama UsuarioService.AutenticarAsync e verifica
+        // se o usuário está ativo; se OK, cria um escopo DI para a sessão, registra o
+        // usuário em Session.CurrentUser e abre o frmMenuPrincipal.
+        // POR QUE EXISTE: é a porta de entrada do sistema e aplica as regras de acesso
+        // (credenciais inválidas e usuário inativo são bloqueados). O escopo é mantido
+        // vivo enquanto o menu estiver aberto, para compartilhar o mesmo PDVContext.
+        // DEPENDÊNCIAS: _usuarioService, Session (estado global) e _serviceProvider.
         private async void btnLogin_Click(object sender, EventArgs e)
         {
             var nome = txtUsuario.Text.Trim();
@@ -77,6 +91,10 @@ namespace PDVStore.Forms
             }
         }
 
+        // Handler do botão "Sair": encerra a aplicação.
+        // O QUE FAZ: chama Application.Exit, fechando todos os formulários e o processo.
+        // POR QUE EXISTE: oferece ao usuário uma saída limpa da tela de login.
+        // QUEM CHAMA: registrado no Designer (btnSair.Click).
         private void btnSair_Click(object sender, EventArgs e)
         {
             Application.Exit();

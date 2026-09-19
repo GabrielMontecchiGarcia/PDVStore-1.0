@@ -8,6 +8,19 @@ namespace PDVStore.Migrations
     /// <inheritdoc />
     public partial class MovEstoque : Migration
     {
+        // ==========================================================================
+        // MIGRAÇÃO "MovEstoque" — MÉTODO Up():
+        //
+        // Cria a tabela MovimentacoesEstoque, que registra TODAS as entradas e
+        // saídas de estoque (vendas, compras, ajustes). Com isso, o saldo do produto
+        // (EstoqueAtual) pode ser calculado somando o histórico de movimentações.
+        //
+        //   1. A tabela guarda: ProdutoId (qual produto), Tipo (Entrada/Saída),
+        //      Quantidade, PrecoUnitario, DataMovimentacao, UsuarioId (quem fez),
+        //      Motivo e ReferenciaVendaId (opcional, ligando à venda de origem).
+        //   2. FKs: ProdutoId -> Produtos e UsuarioId -> UsuarioCaixa, com índices
+        //      para acelerar a busca de movimentações por produto/usuário.
+        // ==========================================================================
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -54,6 +67,12 @@ namespace PDVStore.Migrations
                 column: "UsuarioId");
         }
 
+        // ==========================================================================
+        // MIGRAÇÃO "MovEstoque" — MÉTODO Down():
+        //
+        // Desfaz o que o Up() criou: derruba a tabela MovimentacoesEstoque,
+        // apagando juntos suas FKs e índices (que acompanham a tabela).
+        // ==========================================================================
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {

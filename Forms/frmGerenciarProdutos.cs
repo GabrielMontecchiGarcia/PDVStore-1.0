@@ -27,6 +27,12 @@ namespace PDVStore.Forms
         private Button btnAtualizarEstoque = null!;
         private Button btnRefresh = null!;
 
+        // Construtor da tela de gerenciamento de produtos.
+        // O QUE FAZ: recebe o EstoqueService via Injeção de Dependência (DI), valida a
+        // dependência e prepara a interface (InitializeComponent + ConfigurarGrid).
+        // POR QUE EXISTE: centraliza a montagem do formulário e dispara o carregamento
+        // inicial dos produtos quando o evento Load ocorre (veja o lambda registrado).
+        // QUEM CHAMA: resolvido pelo container DI (frmMenuPrincipal.OpenForm<T>).
         public frmGerenciarProdutos(EstoqueService estoqueService)
         {
             _estoqueService = estoqueService ?? throw new ArgumentNullException(nameof(estoqueService));
@@ -35,6 +41,12 @@ namespace PDVStore.Forms
             Load += async (_, _) => await CarregarProdutosAsync();
         }
 
+        // Constrói manualmente todos os controles da tela (grid, campos, botões) em código.
+        // O QUE FAZ: define títulos, posições, tamanhos e associa os eventos dos botões
+        // aos métodos correspondentes (SalvarAsync, LimparCampos, ExcluirAsync, etc.).
+        // POR QUE EXISTE: mantém a interface do projeto 100% pronta em tempo de execução,
+        // sem depender do Designer do WinForms, facilitando o estudo do código.
+        // DEPENDÊNCIAS: usa o ExportadorService (PDF/Excel) nos botões de exportação.
         private void InitializeComponent()
         {
             Text = "Gerenciar Produtos";
@@ -94,6 +106,13 @@ namespace PDVStore.Forms
             });
         }
 
+        // Configura as colunas exibidas no DataGridView de produtos.
+        // O QUE FAZ: limpa as colunas existentes e cria cada coluna ligada a uma
+        // propriedade do modelo Produto (DataPropertyName), com formatos de moeda
+        // para preço/custo e larguras adequadas.
+        // POR QUE EXISTE: o grid é somente leitura e usa DataSource; sem essa ligação
+        // as colunas não saberiam quais valores do produto exibir.
+        // QUEM CHAMA: o construtor da tela.
         private void ConfigurarGrid()
         {
             dgvProdutos.Columns.Clear();
@@ -109,6 +128,12 @@ namespace PDVStore.Forms
             dgvProdutos.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         }
 
+        // Carrega (ou recarrega) a lista de produtos no DataGridView.
+        // O QUE FAZ: consulta todos os produtos via EstoqueService.GetAllAsync e os
+        // atribui como DataSource do grid.
+        // POR QUE EXISTE: é o método central de atualização da listagem, chamado no
+        // Load do formulário, no Refresh e após salvar/excluir.
+        // DEPENDÊNCIAS: _estoqueService; atualiza o controle dgvProdutos.
         private async Task CarregarProdutosAsync()
         {
             try
@@ -122,6 +147,12 @@ namespace PDVStore.Forms
             }
         }
 
+        // Reage à mudança de linha selecionada no grid de produtos.
+        // O QUE FAZ: se a linha atual corresponde a um Produto, guarda esse objeto em
+        // _produtoSelecionado e chama PreencherCampos para enviar os dados aos TextBoxes.
+        // POR QUE EXISTE: permite ao usuário visualizar/editar o produto clicando na
+        // grade, e informa qual registro será alterado ou excluído.
+        // QUEM CHAMA: o evento dgvProdutos.SelectionChanged.
         private void SelecionarProduto()
         {
             if (dgvProdutos.CurrentRow?.DataBoundItem is Produto produto)
@@ -131,6 +162,11 @@ namespace PDVStore.Forms
             }
         }
 
+        // Copia as propriedades de um Produto para os campos de edição da tela.
+        // O QUE FAZ: preenche os TextBoxes (código, nome, preço, custo, estoque,
+        // estoque mínimo, categoria e descrição) a partir do objeto recebido.
+        // POR QUE EXISTE: dá feedback visual do produto selecionado e permite alterá-lo.
+        // QUEM CHAMA: SelecionarProduto (evento de seleção do grid).
         private void PreencherCampos(Produto produto)
         {
             txtCodigo.Text = produto.CodigoBarras;
@@ -143,6 +179,12 @@ namespace PDVStore.Forms
             txtDescricao.Text = produto.Descricao;
         }
 
+        // Valida e salva (cria ou atualiza) um produto no banco de dados.
+        // O QUE FAZ: valida os campos obrigatórios (código, nome, preço), monta um objeto
+        // Produto e decide entre AddAsync (Id == 0, novo) ou UpdateAsync (edição).
+        // POR QUE EXISTE: é a regra de negócio principal da tela — garantir que só
+        // dados coerentes cheguem ao EstoqueService.
+        // DEPENDÊNCIAS: _estoqueService; atualiza dgvProdutos e limpa os campos ao final.
         private async Task SalvarAsync()
         {
             if (string.IsNullOrWhiteSpace(txtCodigo.Text))
@@ -191,6 +233,12 @@ namespace PDVStore.Forms
             }
         }
 
+        // Desativa (excluição lógica) um produto escolhido na grade.
+        // O QUE FAZ: exige um produto selecionado, pede confirmação e chama
+        // EstoqueService.DeleteAsync; depois recarrega a lista e limpa os campos.
+        // POR QUE EXISTE: evita exclusão física/irreversível — o produto apenas
+        // deixa de aparecer, preservando o histórico de vendas e movimentações.
+        // QUEM CHAMA: botão "Excluir" (btnExcluir.Click).
         private async Task ExcluirAsync()
         {
             if (_produtoSelecionado == null)
@@ -209,6 +257,12 @@ namespace PDVStore.Forms
             LimparCampos();
         }
 
+        // Limpa todos os campos do formulário e desfaz a seleção atual.
+        // O QUE FAZ: esvazia os TextBoxes, zera o _produtoSelecionado e devolve o foco
+        // ao campo de código para a próxima digitação.
+        // POR QUE EXISTE: prepara a tela para um novo cadastro e evita que dados de um
+        // registro anterior sejam salvos por engano.
+        // QUEM CHAMA: botão "Novo" e o final de SalvarAsync/ExcluirAsync.
         private void LimparCampos()
         {
             txtCodigo.Clear();

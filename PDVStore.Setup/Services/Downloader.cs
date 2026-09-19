@@ -11,6 +11,12 @@ namespace PDVStore.Setup.Services;
 /// </summary>
 public static class Downloader
 {
+    // Baixa um arquivo da internet, salvando-o em filePath, e reporta o progresso via callback.
+    // POR QUE esvaziar o conteúdo em blocos: o download pode ser de dezenas de MB (SDK/LocalDB);
+    // usar ResponseHeadersRead + leitura por buffer evita carregar tudo em memória e permite
+    // informar o andamento ao usuário linha a linha no log.
+    // Dependências: System.Net.Http (HttpClient com timeout de 30 min), System.IO para criar o
+    // diretório e gravar o arquivo, e o callback onProgress (bytes recebidos / total, se conhecido).
     public static async Task DownloadAsync(
         string url,
         string filePath,

@@ -17,6 +17,14 @@ namespace PDVStore.Helpers
             public decimal[] Valores { get; set; } = Array.Empty<decimal>();
         }
 
+        // Desenha um gráfico de BARRAS AGRUPADAS com GDI+ dentro de uma área (bounds).
+        // Recebe o título, os rótulos dos eixos (rotulos, ex.: dias do período) e
+        // uma lista de Séries (cada série é uma cor com seus valores por rótulo).
+        // Fluxo: pinta o fundo branco; desenha título e legenda; calcula o maior
+        // valor para escalar a altura das barras; e desenha uma barra por série
+        // em cada posição (valor sobre a barra, rótulo do eixo embaixo). Se não
+        // houver dados, exibe "Sem dados no período selecionado." e encerra.
+        // Quem chama: o DashboardViewModel (movimentações/vendas por dia).
         public static void Desenhar(Graphics g, Rectangle bounds, string titulo, string[] rotulos, List<Serie> series)
         {
             g.FillRectangle(Brushes.White, bounds);

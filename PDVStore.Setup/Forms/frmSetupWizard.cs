@@ -50,12 +50,22 @@ public class frmSetupWizard : Form
     private TextBox _txtResumo = null!;
     private CheckBox _ckbAbrir = null!;
 
+    // Construtor do formulário assistente: é o primeiro método chamado quando a janela é criada.
+    // Sua responsabilidade é apenas montar a interface (ConstruirUI) e exibir a etapa inicial
+    // (BemVindo), deixando o fluxo guiado acontecer a partir da interação do usuário.
+    // Dependências: usa os campos privados da tela e o contexto compartilhado SetupContext.
     public frmSetupWizard()
     {
         ConstruirUI();
         MostrarPasso(PassoSetup.BemVindo);
     }
 
+    // Cria e posiciona todos os controles fixos da janela (títulos, barra de progresso, log,
+    // botões Voltar/Avançar/Fechar) e registra os eventos de clique.
+    // POR QUE em um método separado: mantém o construtor leve e organiza a criação da UI em um
+    // único local, facilitando a leitura didática do que compõe a tela.
+    // Dependências: apenas o Windows Forms; os botões usam lambdas que chamam MostrarPasso,
+    // AvancarAsync e Close (fluxo do assistente).
     private void ConstruirUI()
     {
         Text = "PDV Store - Instalação";
@@ -149,6 +159,13 @@ public class frmSetupWizard : Form
         });
     }
 
+    // Alterna o assistente para a etapa solicitada (BemVindo, Requisitos, Preparacao ou Conclusao):
+    // limpa o painel de conteúdo, chama o construtor visual da etapa e atualiza textos/estado
+    // dos botões e da barra de progresso.
+    // POR QUE centralizar aqui: garante que toda troca de tela mantenha o mesmo padrão de
+    // comportamento (botão Voltar sempre escondido na primeira etapa, etc.).
+    // Dependências: usa os construtores ConstruirBemVindo/Requisitos/Preparacao/Conclusao e as
+    // propriedades computadas Descricao, BotaoAvancarTexto e AvancarHabilitado.
     private void MostrarPasso(PassoSetup passo)
     {
         _passo = passo;
@@ -182,6 +199,11 @@ public class frmSetupWizard : Form
         _lblStatus.Text = "";
     }
 
+    // Propriedade computada (expression-bodied): retorna o texto descritivo mostrado sob o título,
+    // conforme o passo atual do assistente.
+    // POR QUE uma expressão em vez de um método comum: é somente leitura, curta e evita repetir
+    // a lógica de textos espalhada pela tela — o switch por enum centraliza a tradução etapa->texto.
+    // Dependências: apenas o enum PassoSetup.
     private string Descricao(PassoSetup passo) => passo switch
     {
         PassoSetup.BemVindo => "Informe as preferências de instalação e prossiga para a verificação dos pré-requisitos.",
@@ -190,6 +212,11 @@ public class frmSetupWizard : Form
         _ => "Instalação concluída. Confira o resumo abaixo."
     };
 
+    // Propriedade computada: devolve o rótulo do botão "Avançar", que muda conforme a etapa para
+    // orientar o usuário (verificar, preparar, avançar ou concluir).
+    // POR QUE: um botão só dificultaria entender a próxima ação; o texto dinâmico guia o fluxo
+    // didaticamente em cada fase da instalação.
+    // Dependências: apenas o enum PassoSetup; o resultado é aplicado em MostrarPasso.
     private string BotaoAvancarTexto(PassoSetup passo) => passo switch
     {
         PassoSetup.BemVindo => "Verificar pré-requisitos >",
@@ -198,6 +225,11 @@ public class frmSetupWizard : Form
         _ => "Concluir"
     };
 
+    // Propriedade computada: informa se o botão "Avançar" pode ser clicado na etapa atual.
+    // POR QUE a regra existe: na tela de Requisitos o avanço só deve ser liberado se a verificação
+    // tiver sido bem-sucedida (_verificacaoOk), evitando prosseguir com pré-requisitos quebrados.
+    // Dependências: lê o campo de estado _verificacaoOk preenchido por ExecutarVerificacaoAsync
+    // e ExecutarPreparacaoAsync; o resultado é consumido em MostrarPasso.
     private bool AvancarHabilitado(PassoSetup passo) => passo switch
     {
         PassoSetup.BemVindo => true,
@@ -205,6 +237,11 @@ public class frmSetupWizard : Form
         _ => true
     };
 
+    // Adiciona uma linha ao RichTextBox de log, com segurança para chamadas vindas de threads
+    // de segundo plano (ex.: progresso do download).
+    // POR QUE o InvokeRequired/BeginInvoke: controles do Windows Forms só podem ser alterados
+    // pelo thread da UI; se outra thread chamar, o log é repassado de volta para o thread certo.
+    // Dependências: o controle RichTextBox _txtLog e o mecanismo de marshaling do WinForms.
     private void Log(string texto)
     {
         if (InvokeRequired)
@@ -215,6 +252,10 @@ public class frmSetupWizard : Form
         _txtLog.AppendText(texto + Environment.NewLine);
     }
 
+    // Atualiza o label de status da janela, com o mesmo tratamento thread-safe do Log.
+    // POR QUE: durante a preparação, as etapas rodam em chamadas assíncronas que podem vir de
+    // contextos diferentes; garantir a troca para o thread da UI evita exceções de threading.
+    // Dependências: o controle Label _lblStatus e o marshaling do Windows Forms (BeginInvoke).
     private void SetStatus(string texto)
     {
         if (InvokeRequired)
@@ -227,6 +268,12 @@ public class frmSetupWizard : Form
 
     // ========================= CONSTRUÇÃO DAS ETAPAS =========================
 
+    // Etapa BemVindo: monta os campos de "Diretório de instalação" e "Nome do banco", além do
+    // quadro explicativo com a connection string prevista.
+    // POR QUE: é aqui que o usuário informa as preferências que ficarão no SetupContext e que
+    // serão usadas em todas as etapas seguintes (publicação, banco, migrações).
+    // Dependências: lê/escreve _ctx.DirInstalacao e _ctx.NomeBanco, usa InstaladorInfo para montar
+    // a connection string de exemplo e o FolderBrowserDialog para escolher a pasta.
     private void ConstruirBemVindo()
     {
         var lblDir = new Label { Text = "Diretório de instalação (publicação)", Location = new Point(0, 6), Size = new Size(400, 20) };
@@ -262,6 +309,12 @@ public class frmSetupWizard : Form
         _pnlConteudo.Controls.AddRange(new Control[] { lblDir, _txtDir, btnProcurar, lblBanco, _txtBanco, lblCs });
     }
 
+    // Etapa Requisitos: exibe uma ListView com o resultado da verificação de pré-requisitos
+    // (.NET SDK, LocalDB e dotnet-ef), colorindo cada linha conforme o status.
+    // POR QUE: dar visibilidade sobre o que está instalado ou ausente antes de iniciar a
+    // preparação; a cor verde/vermelha facilita a leitura visual do diagnóstico.
+    // Dependências: lê _ctx.Requisitos (populado por VerificadorRequisitos.CarregarAsync) e o
+    // enum StatusRequisito; o campo _verificacaoOk define o texto do resumo.
     private void ConstruirRequisitos()
     {
         var lblResumo = new Label
@@ -302,6 +355,12 @@ public class frmSetupWizard : Form
         _pnlConteudo.Controls.AddRange(new Control[] { lblResumo, _lvRequisitos });
     }
 
+    // Etapa Preparacao: apenas apresenta um texto de aviso sobre o que vai acontecer (UAC do
+    // LocalDB e possíveis downloads demorados).
+    // POR QUE: avisar o usuário antecipadamente evita que ele ache que a tela travou enquanto os
+    // downloads/instalações acontecem em segundo plano.
+    // Dependências: nenhuma lógica própria; o trabalho real é disparado por AvancarAsync via
+    // PreparadorAmbiente.ExecutarAsync.
     private void ConstruirPreparacao()
     {
         var lbl = new Label
@@ -315,6 +374,11 @@ public class frmSetupWizard : Form
         _pnlConteudo.Controls.Add(lbl);
     }
 
+    // Etapa Conclusao: monta a caixa de resumo (Somente leitura) e o checkbox "Abrir o PDVStore".
+    // POR QUE: o resumo dá ao usuário um relatório final (pré-requisitos, banco, executável) e a
+    // opção de abrir o sistema imediatamente após a instalação.
+    // Dependências: usa _ctx.Requisitos, _ctx.ConnectionString e MontarResumo() para preencher
+    // o TextBox; o estado de _ckbAbrir é lido depois por AvancarAsync.
     private void ConstruirConclusao()
     {
         _txtResumo = new TextBox
@@ -338,6 +402,12 @@ public class frmSetupWizard : Form
         _txtResumo.Text = MontarResumo();
     }
 
+    // Gera o texto completo do resumo final da instalação, linha a linha, agrupado por seções
+    // (pré-requisitos, banco, projeto, executável e credenciais iniciais).
+    // POR QUE: centralizar a montagem do texto em um único método evita "sujeira" no construtor
+    // da etapa e facilita ajustes didáticos no conteúdo exibido ao usuário.
+    // Dependências: lê _ctx.Requisitos, _ctx.NomeBanco, _ctx.ConnectionString, LocalizarProjeto
+    // e _ctx.CaminhoExeApp.
     private string MontarResumo()
     {
         var linhas = new System.Collections.Generic.List<string>
@@ -367,6 +437,13 @@ public class frmSetupWizard : Form
 
     // ========================= FLUXO =========================
 
+    // Núcleo do fluxo do assistente: decide o que fazer quando o botão "Avançar" é clicado,
+    // dependendo da etapa atual.
+    // POR QUE: é o "controlador" que conecta as telas às ações reais — na BemVindo coleta os
+    // dados, na Requisitos dispara a preparação, na Preparacao passa para a conclusão e na
+    // Conclusao finaliza abrindo (ou não) o aplicativo.
+    // Dependências: SetupContext, ExecutarVerificacaoAsync, ExecutarPreparacaoAsync,
+    // AbrirAplicativo e os controles de entrada das etapas.
     private async Task AvancarAsync()
     {
         switch (_passo)
@@ -402,6 +479,12 @@ public class frmSetupWizard : Form
         }
     }
 
+    // Executa a verificação de pré-requisitos em segundo plano, desabilita a interface durante o
+    // processo e, ao final, navega para a etapa de Requisitos.
+    // POR QUE: a verificação consulta processos externos (dotnet, registries), o que pode demorar;
+    // bloquear os botões evita cliques duplos e feedback confuso ao usuário.
+    // Dependências: VerificadorRequisitos.CarregarAsync para preencher _ctx.Requisitos e
+    // _verificacaoOk, além do SetStatus para reportar o progresso na tela.
     private async Task ExecutarVerificacaoAsync()
     {
         _btnAvancar.Enabled = false;
@@ -430,6 +513,12 @@ public class frmSetupWizard : Form
         MostrarPasso(PassoSetup.Requisitos);
     }
 
+    // Executa as 7 etapas da preparação (SDK, LocalDB, dotnet-ef, PATH, LocalDB, migrações e
+    // publicação), atualizando barra de progresso e log a cada passo.
+    // POR QUE as variáveis de estado: enquanto roda, _preparacaoEmAndamento desabilita os
+    // botões para que o usuário não interrompa o processo; ao final reabilita e reavalia requisitos.
+    // Dependências: PreparadorAmbiente.ExecutarAsync (com callbacks de progresso/log),
+    // VerificadorRequisitos.CarregarAsync para atualizar o resumo e os controles _pgb/_txtLog.
     private async Task ExecutarPreparacaoAsync()
     {
         _preparacaoEmAndamento = true;
@@ -465,6 +554,11 @@ public class frmSetupWizard : Form
         }
     }
 
+    // Abre o executável do PDVStore quando o usuário marca "Abrir o PDVStore ao concluir".
+    // POR QUE o fallback para bin\Debug: se a publicação não aconteceu, tenta encontrar o .exe
+    // gerado pelo build de desenvolvimento do projeto para ainda assim abrir o sistema.
+    // Dependências: _ctx.CaminhoExeApp, _ctx.LocalizarProjeto() e a API Process.Start do
+    // System.Diagnostics (UseShellExecute = true usa o programa associado do Windows).
     private void AbrirAplicativo()
     {
         if (string.IsNullOrEmpty(_ctx.CaminhoExeApp) || !File.Exists(_ctx.CaminhoExeApp))

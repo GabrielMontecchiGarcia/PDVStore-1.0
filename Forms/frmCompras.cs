@@ -30,6 +30,12 @@ namespace PDVStore.Forms
         private List<Produto> _produtos = new();
         private readonly List<ItemCompra> _itens = new();
 
+        // CONSTRUTOR
+        // O que faz: injeta os serviços de compra, fornecedor e estoque e monta a UI.
+        // Por que existe: registrar uma compra envolve três domínios — o fornecedor (de
+        //   quem compra), o produto (o que entra) e o estoque (que será atualizado).
+        // Dependências: recebe CompraService, FornecedorService e EstoqueService; no Load
+        //   chama CarregarAsync() para popular combos e a lista de compras.
         public frmCompras(CompraService compraService, FornecedorService fornecedorService, EstoqueService estoqueService)
         {
             _compraService = compraService ?? throw new ArgumentNullException(nameof(compraService));
@@ -39,6 +45,11 @@ namespace PDVStore.Forms
             Load += async (_, _) => await CarregarAsync();
         }
 
+        // O que faz: monta em código os painéis de registro (nova compra) e listagem.
+        // Por que existe: a tela concentra duas operações — compor itens da nota e
+        //   consultar/cancelar compras já registradas; sem arquivo Designer.
+        // Dependências: cria dgvItens e dgvCompras, e liga botões a eventos como
+        //   AddItem, SalvarAsync e CancelarAsync.
         private void BuildUI()
         {
             Text = "Compras / Entrada de Mercadorias";
@@ -132,6 +143,11 @@ namespace PDVStore.Forms
             btnExportarExcel.Click += (_, _) => ExportadorService.ExportarExcel(dgvCompras, "Compras", $"Compras_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
         }
 
+        // O que faz: carrega fornecedores, produtos (com estoque atual) e o grid de compras.
+        // Por que existe: sem essas listas não há como compor uma compra — o operador
+        //   precisa ver quem fornece, o que existe e o histórico já registrado.
+        // Dependências: usa FornecedorService.ListarAsync(), EstoqueService.GetAllAsync() e
+        //   CompraService.ListarAsync(); alimenta cmbFornecedor, cmbProduto e dgvCompras.
         private async Task CarregarAsync()
         {
             try
@@ -158,6 +174,12 @@ namespace PDVStore.Forms
             }
         }
 
+        // EVENTO - botão "Adicionar item"
+        // O que faz: valida quantidade e custo e (re)adiciona o produto na lista de itens.
+        // Por que existe: uma nota pode ter vários produtos; se o mesmo produto já está na
+        //   lista, soma as quantidades em vez de duplicar a linha (regra de funcionamento).
+        // Dependências: usa _produtos (índice do cmbProduto) e a lista _itens; ao final
+        //   chama RefreshItens() para atualizar o dgvItens e o total.
         private void AddItem(object? sender, EventArgs e)
         {
             if (cmbProduto.SelectedIndex < 0) return;
@@ -198,6 +220,10 @@ namespace PDVStore.Forms
             txtCusto.Clear();
         }
 
+        // O que faz: reexibe a lista _itens no dgvItens e recalcula o total da compra.
+        // Por que existe: sempre que a lista muda (add/limpar) a tela precisa refletir
+        //   imediatamente o valor acumulado (feedback visual para o operador).
+        // Dependências: lê _itens e lblTotal; é chamado por AddItem e SalvarAsync.
         private void RefreshItens()
         {
             dgvItens.DataSource = null;
@@ -205,6 +231,11 @@ namespace PDVStore.Forms
             lblTotal.Text = _itens.Sum(i => i.Subtotal).ToString("C2");
         }
 
+        // O que faz: grava a compra e atualiza o estoque dos produtos.
+        // Por que existe: é a regra central de entrada de mercadoria — precisa de ao menos
+        //   um item e de um fornecedor; liga a compra ao usuário logado (Session).
+        // Dependências: constrói Compra com _itens, usa CompraService.RegistrarCompraAsync()
+        //   (que dá baixa no estoque) e depois chama CarregarAsync/CarregarProdutosProcessoAsync.
         private async Task SalvarAsync()
         {
             if (_itens.Count == 0)
@@ -253,6 +284,10 @@ namespace PDVStore.Forms
             }
         }
 
+        // O que faz: recarrega _produtos e atualiza apenas o cmbProduto.
+        // Por que existe: após gravar a compra, o estoque exibido no combo ficou defasado;
+        //   recarregar só os produtos é mais leve que chamar CarregarAsync() inteiro.
+        // Dependências: usa EstoqueService.GetAllAsync() e reescreve os itens do cmbProduto.
         private async Task CarregarProdutosProcessoAsync()
         {
             _produtos = await _estoqueService.GetAllAsync();
@@ -262,6 +297,11 @@ namespace PDVStore.Forms
             if (cmbProduto.Items.Count > 0) cmbProduto.SelectedIndex = 0;
         }
 
+        // O que faz: cancela a compra selecionada, estornando (devolvendo) o estoque.
+        // Por que existe: compras registradas por engano precisam ser desfeitas; o estoque
+        //   deve voltar ao que era antes — daí o aviso de "estoque será estornado".
+        // Dependências: lê dgvCompras.CurrentRow, chama CompraService.CancelarCompraAsync()
+        //   e recarrega o grid de compras ao final.
         private async Task CancelarAsync()
         {
             if (dgvCompras.CurrentRow?.DataBoundItem is not Compra compra || compra.Status == "Cancelada")

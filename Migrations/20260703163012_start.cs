@@ -8,6 +8,21 @@ namespace PDVStore.Migrations
     /// <inheritdoc />
     public partial class start : Migration
     {
+        // ==========================================================================
+        // MIGRAÇÃO "start" — MÉTODO Up():
+        //
+        // Este é o método que EXECUTA as mudanças no banco (Up = "aplica").
+        // Aqui criamos o banco de dados "do zero", com a estrutura inicial do PDV:
+        //
+        //   1. Tabela FormaPagamentos -> formas de pagamento (Dinheiro/Cartão/Pix...)
+        //   2. Tabela Produtos        -> produtos com Nome, Preco e Estoque
+        //   3. Tabela UsuarioCaixa    -> usuários do caixa (SenhaHash e Permissao)
+        //   4. Tabela Vendas          -> vendas registradas (Data, Total, FormaPagamentoId)
+        //   5. Tabela ItemVenda       -> itens de cada venda (FK VendaId -> Vendas)
+        //
+        // Também inserimos um usuário padrão "Admin" (seed) e criamos o índice
+        // IX_ItemVenda_VendaId para acelerar a consulta de itens de cada venda.
+        // ==========================================================================
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -103,6 +118,14 @@ namespace PDVStore.Migrations
                 column: "VendaId");
         }
 
+        // ==========================================================================
+        // MIGRAÇÃO "start" — MÉTODO Down():
+        //
+        // O Down() é o oposto do Up(): ele DESFAZ as mudanças. Aqui removemos
+        // todos os objetos criados no Up(), derrubando as tabelas do banco.
+        // A ordem importa: como ItemVenda depende de Vendas, ela é removida antes,
+        // para não deixar referências pendentes.
+        // ==========================================================================
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {

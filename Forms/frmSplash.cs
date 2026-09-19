@@ -21,6 +21,12 @@ namespace PDVStore.Forms
         public event EventHandler<bool>? VerificacaoConcluida;
         public string? UltimaFalha { get; private set; }
 
+        // Construtor da tela de splash: prepara a UI e agenda a verificação do sistema.
+        // O QUE FAZ: valida o VerificacaoSistemaService via DI, chama BuildUI e associa
+        // ao evento Shown a execução assíncrona de ExecutarVerificacaoAsync.
+        // POR QUE EXISTE: a verificação só deve rodar quando a janela já estiver
+        // visível; centralizar aqui evita iniciar checagens antes de haver UI.
+        // QUEM CHAMA: o Program.cs na inicialização da aplicação.
         public frmSplash(VerificacaoSistemaService verificacao)
         {
             _verificacao = verificacao ?? throw new ArgumentNullException(nameof(verificacao));
@@ -28,6 +34,12 @@ namespace PDVStore.Forms
             Shown += async (_, _) => await ExecutarVerificacaoAsync();
         }
 
+        // Monta os controles visuais do splash: título, versão, barra e status.
+        // O QUE FAZ: cria e posiciona os rótulos, a barra de progresso e o texto de
+        // status, adicionando tudo ao formulário.
+        // POR QUE EXISTE: separa a construção visual da lógica de verificação,
+        // deixando claro o que é aparência e o que é regra de inicialização.
+        // QUEM CHAMA: o construtor de frmSplash.
         private void BuildUI()
         {
             Text = "PDV Store";
@@ -85,6 +97,13 @@ namespace PDVStore.Forms
             Controls.AddRange(new Control[] { lblTitulo, lblSub, lblVersao, pgbProgresso, lblStatus });
         }
 
+        // Executa as verificações de ambiente e decide se o login pode abrir.
+        // O QUE FAZ: define um callback que atualiza barra/status a cada passo, chama
+        // VerificacaoSistemaService.VerificarAsync, trata falhas (mensagem e UltimaFalha)
+        // e dispara o evento VerificacaoConcluida, fechando o splash.
+        // POR QUE EXISTE: valida pré-requisitos (ex.: banco de dados) antes do login —
+        // se algo falhar, a aplicação encerra de forma controlada e informa o motivo.
+        // DEPENDÊNCIAS: _verificacao e o evento VerificacaoConcluida (consumido no Program).
         private async Task ExecutarVerificacaoAsync()
         {
             Action<VerificacaoItem> onPasso = item =>

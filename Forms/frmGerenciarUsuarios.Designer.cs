@@ -7,6 +7,12 @@
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
+        // Libera os recursos gerenciados do formulário ao ser fechado/descartado.
+        // O QUE FAZ: quando disposing é true, descarta o container "components" (que
+        // guarda os controles criados pelo Designer) e chama a implementação base.
+        // POR QUE EXISTE: evita vazamento de memória/recursos GDI; é sobrescrito para
+        // incluir os componentes específicos desta tela na limpeza.
+        // QUEM CHAMA: o runtime do WinForms ao fechar/descartar o formulário.
         /// <summary>
         /// Clean up any resources being used.
         /// </summary>
@@ -22,6 +28,12 @@
 
         #region Windows Form Designer generated code
 
+        // Inicializa e configura todos os controles da tela (código gerado).
+        // O QUE FAZ: instancia o grid de usuários, os botões (Novo/Editar/Excluir/
+        // Atualizar/Buscar) e o campo de pesquisa, definindo posições e eventos.
+        // POR QUE EXISTE: é o método gerado pelo WinForms Designer que constrói a UI;
+        // não deve ser editado manualmente para não perder alterações do Designer.
+        // QUEM CHAMA: o construtor de frmGerenciarUsuarios.
         /// <summary>
         /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.

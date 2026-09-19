@@ -10,6 +10,12 @@ namespace PDVStore.Forms
     {
         private readonly IServiceProvider _serviceProvider;
 
+        // Construtor do menu principal.
+        // O QUE FAZ: recebe o IServiceProvider via DI, guarda a referência e chama
+        // BuildUI para montar a interface com os atalhos por permissão.
+        // POR QUE EXISTE: define o ponto de entrada depois do login e armazena o
+        // provider que resolverá as telas de negócio ao clicar em cada botão.
+        // QUEM CHAMA: criado pelo escopo da sessão dentro do frmLogin.
         public frmMenuPrincipal(IServiceProvider serviceProvider)
         {
             InitializeComponent();
@@ -17,6 +23,13 @@ namespace PDVStore.Forms
             BuildUI();
         }
 
+        // Monta a interface principal: saudação, rodapé e botões de atalho.
+        // O QUE FAZ: configura título/tamanho da janela, adiciona a mensagem de boas-
+        // vindas com o nome do usuário logado, o painel de atalhos (FlowLayoutPanel)
+        // preenchido conforme a permissão e o botão "Sair".
+        // POR QUE EXISTE: separa a "construção visual" da "lógica de navegação",
+        // facilitando entender como o menu é composto.
+        // DEPENDÊNCIAS: Session.CurrentUser e AdicionarBotoesPorPermissao.
         private void BuildUI()
         {
             Text = "PDV Store - Menu Principal";
@@ -74,6 +87,12 @@ namespace PDVStore.Forms
         //  - Administrador: acesso total a todas as telas.
         //  - Operador (Caixa): apenas o PDV.
         //  - Estoquista: apenas o cadastro de produtos.
+        // Exibe os botões do menu conforme o papel (permissão) do usuário logado.
+        // O QUE FAZ: lê Session.CurrentUser.Permissao e monta a lista de atalhos:
+        // Administrador vê tudo; Estoquista só Produtos; Operador (default) só o PDV.
+        // POR QUE EXISTE: aplica a regra de negócio de controle de acesso por papel,
+        // garantindo que cada usuário veja apenas as telas que pode usar.
+        // DEPENDÊNCIAS: Session/TipoPermissao e AddMenuButton; chamado por BuildUI.
         private void AdicionarBotoesPorPermissao(FlowLayoutPanel menu)
         {
             var permissao = Session.CurrentUser?.Permissao ?? TipoPermissao.Operador;
@@ -103,6 +122,12 @@ namespace PDVStore.Forms
             }
         }
 
+        // Cria um botão de atalho com estilo padrão e o liga a um handler.
+        // O QUE FAZ: instancia um Button com texto, tamanho e cores, associa o evento
+        // Click ao handler recebido e adiciona o botão ao painel de menu.
+        // POR QUE EXISTE: evita duplicação de código ao montar dezenas de atalhos,
+        // padronizando o visual e o comportamento de todos os botões do menu.
+        // QUEM CHAMA: AdicionarBotoesPorPermissao.
         private static void AddMenuButton(FlowLayoutPanel menu, string text, EventHandler onClick)
         {
             var btn = new Button
@@ -118,17 +143,53 @@ namespace PDVStore.Forms
             menu.Controls.Add(btn);
         }
 
+        // Handler do atalho "Vender (PDV)": abre a tela de ponto de venda.
+        // POR QUE EXISTE: é a tela principal do operador de caixa.
+        // DEPENDÊNCIAS: delega para OpenForm<frmPDV>.
         private void OnVender(object? sender, EventArgs e) => OpenForm<frmPDV>();
+        // Handler do atalho "Dashboard": abre o painel de indicadores gerenciais.
+        // POR QUE EXISTE: dá ao administrador uma visão rápida das vendas/estoque.
+        // DEPENDÊNCIAS: delega para OpenForm<frmDashboard>.
         private void OnDashboard(object? sender, EventArgs e) => OpenForm<frmDashboard>();
+        // Handler do atalho "Produtos": abre o gerenciamento de produtos.
+        // POR QUE EXISTE: permite cadastrar/editar produtos e preços.
+        // DEPENDÊNCIAS: delega para OpenForm<frmGerenciarProdutos>.
         private void OnProdutos(object? sender, EventArgs e) => OpenForm<frmGerenciarProdutos>();
+        // Handler do atalho "Estoque": abre a tela de movimentação de estoque.
+        // POR QUE EXISTE: registrar entradas/saídas e ajustar quantidades.
+        // DEPENDÊNCIAS: delega para OpenForm<frmEstoque>.
         private void OnEstoque(object? sender, EventArgs e) => OpenForm<frmEstoque>();
+        // Handler do atalho "Clientes": abre a gestão de clientes.
+        // POR QUE EXISTE: cadastrar clientes e controlar saldo fiado/limite.
+        // DEPENDÊNCIAS: delega para OpenForm<frmClientes>.
         private void OnClientes(object? sender, EventArgs e) => OpenForm<frmClientes>();
+        // Handler do atalho "Fornecedores": abre a gestão de fornecedores.
+        // POR QUE EXISTE: manter os parceiros usados nas compras de mercadoria.
+        // DEPENDÊNCIAS: delega para OpenForm<frmFornecedores>.
         private void OnFornecedores(object? sender, EventArgs e) => OpenForm<frmFornecedores>();
+        // Handler do atalho "Compras": abre a tela de compras/entrada de mercadoria.
+        // POR QUE EXISTE: registrar aquisições que alimentam o estoque.
+        // DEPENDÊNCIAS: delega para OpenForm<frmCompras>.
         private void OnCompras(object? sender, EventArgs e) => OpenForm<frmCompras>();
+        // Handler do atalho "Abrir/Fechar Caixa": abre a gestão do caixa.
+        // POR QUE EXISTE: sem caixa aberto o PDV bloqueia as vendas.
+        // DEPENDÊNCIAS: delega para OpenForm<frmCaixa>.
         private void OnCaixa(object? sender, EventArgs e) => OpenForm<frmCaixa>();
+        // Handler do atalho "Usuários": abre a gestão de usuários.
+        // POR QUE EXISTE: administrar contas, permissões e fotos dos operadores.
+        // DEPENDÊNCIAS: delega para OpenForm<frmGerenciarUsuarios>.
         private void OnUsuarios(object? sender, EventArgs e) => OpenForm<frmGerenciarUsuarios>();
+        // Handler do atalho "Sobre": abre a tela de informações da aplicação.
+        // POR QUE EXISTE: exibir versão/créditos para suporte e identificação.
+        // DEPENDÊNCIAS: delega para OpenForm<frmSobre>.
         private void OnSobre(object? sender, EventArgs e) => OpenForm<frmSobre>();
 
+        // Abre qualquer tela (T : Form) resolvida pelo container DI, em modo modal.
+        // O QUE FAZ: busca o formulário em _serviceProvider.GetRequiredService<T>,
+        // centraliza na tela e exibe com ShowDialog; erros ao resolver são mostrados.
+        // POR QUE EXISTE: evita repetir o padrão "resolver + centralizar + abrir" em
+        // cada handler de atalho e propaga o mesmo contexto de banco da sessão.
+        // DEPENDÊNCIAS: _serviceProvider; chamado pelos handlers OnVender/OnProdutos etc.
         private void OpenForm<T>() where T : Form
         {
             Cursor = Cursors.WaitCursor;

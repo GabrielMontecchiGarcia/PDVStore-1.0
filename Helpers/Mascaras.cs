@@ -7,14 +7,22 @@ namespace PDVStore.Helpers
 {
     public static class Mascaras
     {
+        // Extrai SOMENTE os dígitos (0-9) de um texto, descartando qualquer pontuação
+        // (pontos, traços, parênteses, espaços...). É a base de todas as funções
+        // de máscara/validação deste helper (FormatarCpfCnpj, FormatarTelefone,
+        // ValidarCpf, ValidarCnpj), pois elas trabalham sobre o número "cru".
+        // Texto nulo é tratado como vazio. Retorna string vazia se não houver
+        // dígitos. Método expression-bodied (corpo único).
         public static string SomenteDigitos(string? texto) =>
             new((texto ?? string.Empty).Where(char.IsDigit).ToArray());
 
-        /// <summary>
-        /// Converte texto digitado em decimal aceitando vírgula ou ponto como
-        /// separador decimal, independentemente da cultura atual. O último
-        /// separador presente no texto é considerado o separador decimal.
-        /// </summary>
+        // Converte um texto digitado pelo usuário em valor decimal, aceitando vírgula
+        // OU ponto como separador decimal independentemente da cultura atual —
+        // comum em campos de valor no PDV. Regra: o ÚLTIMO separador presente no
+        // texto é considerado o decimal (é o comportamento intuitivo ao digitar).
+        // Texto vazio retorna o valorPadrao; se a conversão falhar ou o resultado
+        // for negativo, retorna Math.Max(0, valorPadrao) para nunca aceitar valor
+        // negativo. Quem chama: telas de entrada de preços/valores.
         public static decimal ParseDecimal(string? texto, decimal valorPadrao = 0)
         {
             var t = (texto ?? string.Empty).Trim();
@@ -34,10 +42,13 @@ namespace PDVStore.Helpers
             return Math.Max(0, v);
         }
 
-        /// <summary>
-        /// Formata progressivamente os dígitos como CPF (11) ou CNPJ (14),
-        /// conforme a quantidade de dígitos informados.
-        /// </summary>
+        // Formata progressivamente os dígitos como CPF (11 dígitos) ou CNPJ (14
+        // dígitos), aplicando a máscara conforme a quantidade digitada — assim o
+        // campo "ganha a máscara" enquanto o usuário digita. Regras: usa
+        // SomenteDigitos para limpar o texto; limita a 14 dígitos; até 11 dígitos
+        // formata como CPF (###.###.###-##) e acima como CNPJ (##.###.###/####-##).
+        // Devolve os dígitos sem máscara nos primeiros caracteres (ainda não há
+        // pontos suficientes). Usado em campos de CPF/CNPJ de cliente/fornecedor.
         public static string FormatarCpfCnpj(string? texto)
         {
             var d = SomenteDigitos(texto);
@@ -57,9 +68,12 @@ namespace PDVStore.Helpers
             return $"{d.Substring(0, 2)}.{d.Substring(2, 3)}.{d.Substring(5, 3)}/{d.Substring(8, 4)}";
         }
 
-        /// <summary>
-        /// Formata progressivamente os dígitos como telefone fixo/celular.
-        /// </summary>
+        // Formata progressivamente os dígitos como telefone fixo/celular brasileiro
+        // enquanto o usuário digita. Regras: usa SomenteDigitos; limita a 11
+        // dígitos; a partir de 2 dígitos aplica o DDD "(XX)"; e vai adicionando a
+        // máscara de 7 (fixo), 8 (celular antigo) e 9 (celular com 9) dígitos.
+        // Retorna apenas os dígitos antes de 2 caracteres. Usado nos campos de
+        // telefone de clientes/fornecedores.
         public static string FormatarTelefone(string? texto)
         {
             var d = SomenteDigitos(texto);
@@ -76,9 +90,20 @@ namespace PDVStore.Helpers
 
         private static readonly Regex EmailRegex = new(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled);
 
+        // Valida se um texto é um e-mail em formato aceitável. Usa a regex
+        // pré-compilada EmailRegex (padrão: algo@algo.algo) após remover espaços.
+        // Não garante que o e-mail exista, apenas a forma. Texto vazio/nulo é
+        // inválido. Quem chama: cadastros de cliente/fornecedor/usuario para
+        // avisar sobre e-mail mal formatado.
         public static bool ValidarEmail(string? email) =>
             !string.IsNullOrWhiteSpace(email) && EmailRegex.IsMatch(email.Trim());
 
+        // Valida um CPF usando o algoritmo oficial do dígito verificador. Regras:
+        // precisa ter 11 dígitos e não pode ser todos iguais (ex.: 111.111.111-11).
+        // Calcula o 1º dígito verificador (pesos 10..2) e o 2º (pesos 11..2
+        // recalculados) e compara com os dois últimos dígitos informados. Depende de
+        // SomenteDigitos e do cálculo de módulo 11. Quem chama: cadastros de
+        // clientes para barrar CPF inválido.
         public static bool ValidarCpf(string? cpf)
         {
             var d = SomenteDigitos(cpf);
@@ -95,6 +120,12 @@ namespace PDVStore.Helpers
             return d[9] - '0' == dig1 && d[10] - '0' == dig2;
         }
 
+        // Valida um CNPJ usando o algoritmo oficial do dígito verificador. Regras:
+        // precisa ter 14 dígitos e não pode ser todos iguais. Aplica os pesos
+        // específicos do CNPJ (5..2 sobre 12 dígitos para o 1º dígito; 6..2 sobre
+        // 13 dígitos para o 2º) com módulo 11 e compara com os dois últimos
+        // dígitos. Depende de SomenteDigitos. Quem chama: cadastros de
+        // fornecedores para barrar CNPJ inválido.
         public static bool ValidarCnpj(string? cnpj)
         {
             var d = SomenteDigitos(cnpj);

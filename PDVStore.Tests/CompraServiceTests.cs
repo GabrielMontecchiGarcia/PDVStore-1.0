@@ -8,6 +8,9 @@ namespace PDVStore.Tests;
 [TestFixture]
 public class CompraServiceTests : TesteBanco
 {
+    // Método auxiliar de montagem: cadastra um fornecedor e um produto com o estoque e
+    // o custo desejados, devolvendo o serviço pronto e as entidades criadas.
+    // Centraliza a preparação de dados comum a todos os testes de compra.
     private async Task<(CompraService Service, Produto Produto, Fornecedor Fornecedor)> SetupAsync(
         int estoque = 10, int qtd = 5, decimal custo = 2.50m)
     {
@@ -21,6 +24,9 @@ public class CompraServiceTests : TesteBanco
         return (new CompraService(Context), produto, fornecedor);
     }
 
+    // Método auxiliar de montagem: constrói (sem gravar) uma compra válida com um único
+    // item. Recebe produto, quantidade e custo, deixando o teste livre para adaptar o
+    // cenário (itens vazios, quantidades inválidas, custo negativo etc.).
     private Compra CriarCompra(int produtoId, int qtd = 5, decimal custo = 2.50m)
     {
         return new Compra
@@ -35,6 +41,9 @@ public class CompraServiceTests : TesteBanco
         };
     }
 
+    // Cenário: registrar compra sem nenhum item.
+    // Valida a rejeição com InvalidOperationException ("pelo menos um item").
+    // Protege a regra de que toda compra precisa trazer ao menos um produto.
     [Test]
     public async Task RegistrarCompraAsync_SemItens_Rejeita()
     {
@@ -43,6 +52,9 @@ public class CompraServiceTests : TesteBanco
         Assert.That(ex!.Message, Does.Contain("pelo menos um item"));
     }
 
+    // Cenário: item de compra com quantidade zero.
+    // Valida a rejeição ("maior que zero"). Protege a regra de que quantidades de
+    // compra devem ser positivas para não corromper o estoque.
     [Test]
     public async Task RegistrarCompraAsync_QuantidadeInvalida_Rejeita()
     {
@@ -52,6 +64,9 @@ public class CompraServiceTests : TesteBanco
         Assert.That(ex!.Message, Does.Contain("maior que zero"));
     }
 
+    // Cenário: item de compra com custo negativo.
+    // Valida a rejeição ("não pode ser negativo"). Protege a regra de que o custo
+    // de mercadoria nunca é menor que zero.
     [Test]
     public async Task RegistrarCompraAsync_CustoNegativo_Rejeita()
     {
@@ -61,6 +76,9 @@ public class CompraServiceTests : TesteBanco
         Assert.That(ex!.Message, Does.Contain("não pode ser negativo"));
     }
 
+    // Cenário: compra apontando para um produto que não existe (999).
+    // Valida a rejeição ("não encontrado"). Protege a integridade referencial — não
+    // se pode dar entrada em estoque de um produto desconhecido.
     [Test]
     public async Task RegistrarCompraAsync_ProdutoInexistente_Rejeita()
     {
@@ -71,6 +89,10 @@ public class CompraServiceTests : TesteBanco
         Assert.That(ex!.Message, Does.Contain("não encontrado"));
     }
 
+    // Cenário: compra feliz de 4 unidades a R$ 2,50 num produto com 3 em estoque.
+    // Valida persistência da compra (status "Concluida", total 10 e data), entrada de
+    // 4 unidades no estoque, atualização do PrecoCusto e movimentação "Entrada" com a
+    // referência à compra. Protege o fluxo completo de recebimento de mercadoria.
     [Test]
     public async Task RegistrarCompraAsync_Sucesso_EntraEstoqueEGravaMovimentacao()
     {
@@ -95,6 +117,9 @@ public class CompraServiceTests : TesteBanco
         Assert.That(mov[0].Motivo, Does.Contain("Compra #"));
     }
 
+    // Cenário: compra com custo zero para um produto cujo PrecoCusto já é 2.
+    // Valida que o custo zero entra no estoque mas NÃO sobrescreve o último custo
+    // conhecido. Protege a regra de que só um custo informado recalcula o PrecoCusto.
     [Test]
     public async Task RegistrarCompraAsync_CustoZero_NaocalculaPrecoCusto()
     {
@@ -108,6 +133,10 @@ public class CompraServiceTests : TesteBanco
         Assert.That(produto.PrecoCusto, Is.EqualTo(2m)); // inalterado
     }
 
+    // Cenário: leitura de uma compra já registrada e de um Id inexistente.
+    // Valida que ObterPorIdAsync carrega os relacionamentos (fornecedor, itens e
+    // produto) via Include e retorna null para Id inválido. Protege a tela de detalhe
+    // da compra, que precisa desses dados sem consultas extras.
     [Test]
     public async Task ObterPorIdAsync_ComInclude_RetornaDadosRelacionados()
     {
@@ -124,6 +153,9 @@ public class CompraServiceTests : TesteBanco
         Assert.That(await service.ObterPorIdAsync(999), Is.Null);
     }
 
+    // Cenário: duas compras em períodos diferentes (uma recente, outra de 2 meses atrás).
+    // Valida a ordenação pela data (mais recente primeiro) e o filtro por período.
+    // Protege as telas de histórico e relatório de compras.
     [Test]
     public async Task ListarAsync_FiltraPorPeriodoEOrdenaDesc()
     {
@@ -147,6 +179,10 @@ public class CompraServiceTests : TesteBanco
         Assert.That(recentes.Count, Is.EqualTo(1));
     }
 
+    // Cenário: cancelar uma compra que deu entrada em 5 unidades de um produto com 2.
+    // Valida o estorno do estoque (7 -> 2), o status "Cancelada" e que um segundo
+    // cancelamento (ou Id inexistente) retorna false. Protege a regra de que o
+    // estoque é devolvido apenas uma vez.
     [Test]
     public async Task CancelarCompraAsync_EstornaEstoqueSoUmaVez()
     {

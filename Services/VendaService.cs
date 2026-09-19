@@ -16,6 +16,11 @@ namespace PDVLoja.Services
         private readonly PagamentoIntegrator _pagamentoIntegrator;
         private readonly CaixaService _caixaService;
 
+        // CONSTRUTOR: recebe três dependências injetadas — PDVContext (acesso ao
+        // banco), PagamentoIntegrator (processa o pagamento da venda, mock) e
+        // CaixaService (exigir caixa aberto). É o serviço mais crítico do PDV e
+        // concentra todas as regras de venda. Não lança exceções; guarda as
+        // dependências nos campos privados para os métodos abaixo.
         public VendaService(PDVContext context, PagamentoIntegrator pagamentoIntegrator, CaixaService caixaService)
         {
             _context = context;
@@ -23,10 +28,17 @@ namespace PDVLoja.Services
             _caixaService = caixaService;
         }
 
-        /// <summary>
-        /// Registra uma venda completa: valida estoque, exige caixa aberto,
-        /// processa pagamento (inclusive fiado/clientes) e movimenta o estoque.
-        /// </summary>
+        // Registra uma venda completa dentro de UMA transação com rollback (Commit/
+        // Rollback em qualquer falha). ORDEM e REGRAS: (0) exige CAIXA ABERTO
+        // (dependência de CaixaService.ObterCaixaAbertoAsync, senão lança
+        // InvalidOperationException); (0.1) venda FIADA exige cliente ativo e
+        // respeita o limite de crédito (SaldoDevedor + total <= LimiteCredito);
+        // calcula ValorTotal (itens - desconto, nunca negativo); (1) valida
+        // estoque de cada produto antes de gravar; (2) grava cabeçalho+itens;
+        // (3) BAIXA o estoque e registra MovimentacaoEstoque tipo "Saída";
+        // (4) venda fiada AUMENTA o SaldoDevedor do cliente; (5) processa o
+        // pagamento via PagamentoIntegrator (gera PixTxId no PIX) e só então
+        // commita. Quem chama: a tela do PDV ao finalizar o cupom.
         public async Task<Venda> RegistrarVendaAsync(Venda venda)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -124,6 +136,10 @@ namespace PDVLoja.Services
             }
         }
 
+        // Carrega uma venda completa para detalhamento: itens (com produtos),
+        // usuário do caixa e cliente, usando Includes encadeados. Usa AsNoTracking
+        // por ser consulta de leitura; retorna null se o Id não existir.
+        // Quem chama: a tela de detalhes/consulta de venda ou o cupom impresso.
         public async Task<Venda?> ObterPorIdAsync(int id)
         {
             return await _context.Vendas
@@ -135,6 +151,11 @@ namespace PDVLoja.Services
                 .FirstOrDefaultAsync(v => v.Id == id);
         }
 
+        // Lista as vendas CONCLUÍDAS de um período, incluindo itens, usuário e
+        // cliente para exibição. Aceita filtro opcional de CaixaId (ex.: vendas
+        // do caixa atual/daquele turno). Ordena da mais recente para a mais
+        // antiga. Usa AsNoTracking (leitura). Quem chama: relatórios e o
+        // DashboardViewModel (via RelatorioService) para análise por período.
         public async Task<IEnumerable<Venda>> ListarPorPeriodoAsync(DateTime inicio, DateTime fim, int? caixaId = null)
         {
             var query = _context.Vendas
@@ -150,6 +171,10 @@ namespace PDVLoja.Services
             return await query.OrderByDescending(v => v.DataVenda).ToListAsync();
         }
 
+        // Soma o ValorTotal das vendas CONCLUÍDAS em um período (com filtro opcional
+        // de caixa). Usa SumAsync no banco (agregação eficiente, sem carregar
+        // todos os registros). É o indicador "faturamento do período" usado pelo
+        // DashboardViewModel (TotalPeriodo) e relatórios.
         public async Task<decimal> CalcularTotalVendasAsync(DateTime inicio, DateTime fim, int? caixaId = null)
         {
             var query = _context.Vendas
@@ -161,16 +186,23 @@ namespace PDVLoja.Services
             return await query.SumAsync(v => v.ValorTotal);
         }
 
+        // Conta quantas vendas foram CONCLUÍDAS em um período. Usa CountAsync (conta
+        // no banco, sem carregar dados). É o indicador "quantidade de vendas do
+        // período" usado pelo DashboardViewModel (QuantidadeVendas).
         public async Task<int> ContarVendasAsync(DateTime inicio, DateTime fim)
         {
             return await _context.Vendas
                 .CountAsync(v => v.DataVenda >= inicio && v.DataVenda <= fim && v.Status == "Concluida");
         }
 
-        /// <summary>
-        /// Cancela uma venda, devolvendo os itens ao estoque e registrando as
-        /// movimentações de entrada correspondentes.
-        /// </summary>
+        // Cancela uma venda, desfazendo todos os efeitos dela dentro de uma transação
+        // com rollback. Regras: retorna false se a venda não existir ou já estiver
+        // cancelada. O que fazem: DEVOLVE cada item ao estoque, registra
+        // MovimentacaoEstoque tipo "Entrada" com motivo "Estorno - Venda #id" e
+        // ReferenciaVendaId; se a venda era FIADA, desconta o valor do
+        // SaldoDevedor do cliente (Math.Max(0,...)); e marca a venda como
+        // "Cancelada". Qualquer falha executa Rollback e retorna false. Quem
+        // chama: a tela de consulta de vendas (botão cancelar).
         public async Task<bool> CancelarVendaAsync(int vendaId, string motivo)
         {
             var venda = await _context.Vendas
@@ -225,6 +257,11 @@ namespace PDVLoja.Services
         }
 
         // Relatórios rápidos
+        // Relatório rápido que retorna TODAS as vendas concluídas de um período (sem
+        // incluir itens, apenas o cabeçalho) para análise por forma de pagamento.
+        // É a base do dashboard de "pagamentos por forma": o chamador agrupa por
+        // FormaPagamento para montar a distribuição (PIX, Cartão, Dinheiro,
+        // Fiado). Usa AsNoTracking (leitura). Quem chama: DashboardViewModel.
         public async Task<IEnumerable<Venda>> RelatorioVendasPorFormaPagamentoAsync(DateTime inicio, DateTime fim)
         {
             return await _context.Vendas

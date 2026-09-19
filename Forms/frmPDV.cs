@@ -42,6 +42,12 @@ namespace PDVStore.Forms
         private PrintDocument? _printDocument;
         private string? _reciboTextoParaImprimir;
 
+        // Construtor do PDV: injeta os serviços usados em toda a operação de venda.
+        // O QUE FAZ: valida e armazena VendaService, EstoqueService, CaixaService e
+        // ClienteService; monta a interface via BuildUI e assina o evento Load.
+        // POR QUE EXISTE: para a tela funcionar é preciso registrar venda, consultar
+        // produtos, validar caixa aberto e listar clientes — as quatro dependências.
+        // QUEM CHAMA: resolvido pelo container DI (frmMenuPrincipal.OnVender).
         public frmPDV(VendaService vendaService, EstoqueService estoqueService,
                       CaixaService caixaService, ClienteService clienteService)
         {
@@ -54,6 +60,12 @@ namespace PDVStore.Forms
             Load += OnLoad;
         }
 
+        // Carga inicial do PDV quando o formulário é exibido.
+        // O QUE FAZ: mostra o operador logado, verifica se há caixa aberto (desabilita
+        // a finalização se não houver), carrega produtos, clientes e formas de pagamento.
+        // POR QUE EXISTE: garante que a tela já abra com dados e valida a regra de
+        // negócio "só vende com caixa aberto".
+        // DEPENDÊNCIAS: _caixaService, _estoqueService, _clienteService e Session.
         private async void OnLoad(object? sender, EventArgs e)
         {
             try
@@ -84,6 +96,12 @@ namespace PDVStore.Forms
             }
         }
 
+        // Constrói toda a interface do PDV em código: grids, campos e grupos.
+        // O QUE FAZ: cria os painéis Produtos, Carrinho, Pagamento e Recibo, posiciona
+        // os controles e associa os eventos (busca, adicionar, remover, finalizar etc.).
+        // POR QUE EXISTE: monta a tela dinamicamente para que a lógica fique clara,
+        // sem depender de arquivos gerados pelo Designer.
+        // DEPENDÊNCIAS: chama ConfigureProdutosGrid e ConfigureItensGrid.
         private void BuildUI()
         {
             Text = "PDV - Ponto de Venda";
@@ -209,6 +227,12 @@ namespace PDVStore.Forms
             Controls.Add(grpRecibo);
         }
 
+        // Configura as colunas do grid de produtos disponíveis para venda.
+        // O QUE FAZ: define colunas ligadas ao modelo Produto (Id, código, nome,
+        // preço em moeda, estoque) e ativa o preenchimento automático da quantidade.
+        // POR QUE EXISTE: mostra ao operador o que pode ser vendido e quanto há em
+        // estoque; o evento SelectionChanged dispara PreencherQuantidadePadrao.
+        // QUEM CHAMA: BuildUI.
         private void ConfigureProdutosGrid()
         {
             dgvProdutos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Id", HeaderText = "ID", DataPropertyName = "Id", Width = 50 });
@@ -228,6 +252,12 @@ namespace PDVStore.Forms
             dgvProdutos.SelectionChanged += (_, _) => PreencherQuantidadePadrao();
         }
 
+        // Configura as colunas do grid do carrinho de itens da venda.
+        // O QUE FAZ: cria colunas ligadas ao ItemVenda (produto, quantidade, preço
+        // unitário e subtotal), com valores monetários formatados.
+        // POR QUE EXISTE: o carrinho reflete o PDVViewModel e precisa dessas colunas
+        // para exibir corretamente o que será registrado na venda.
+        // QUEM CHAMA: BuildUI.
         private void ConfigureItensGrid()
         {
             dgvItens.Columns.Add(new DataGridViewTextBoxColumn { Name = "Produto", HeaderText = "Produto", DataPropertyName = "NomeProduto", Width = 280 });
@@ -252,17 +282,34 @@ namespace PDVStore.Forms
             dgvItens.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         }
 
+        // Reinicia a quantidade digitada para 1 ao trocar o produto selecionado.
+        // O QUE FAZ: se existe um Produto na linha corrente do grid, define a
+        // quantidade padrão como "1".
+        // POR QUE EXISTE: facilita a operação — o operador normalmente adiciona 1
+        // unidade de cada item, e só ajusta a quantidade quando necessário.
+        // QUEM CHAMA: evento dgvProdutos.SelectionChanged.
         private void PreencherQuantidadePadrao()
         {
             if (dgvProdutos.CurrentRow?.DataBoundItem is Produto p)
                 txtQuantidade.Text = "1";
         }
 
+        // Efetua a busca de produtos usando o texto digitado no campo de pesquisa.
+        // O QUE FAZ: repassa o texto do txtBuscaProduto para CarregarProdutosAsync.
+        // POR QUE EXISTE: centraliza o ponto de entrada da pesquisa (acionado pelo
+        // botão "Buscar" e pela tecla Enter no campo).
+        // DEPENDÊNCIAS: chama CarregarProdutosAsync.
         private async Task BuscarAsync()
         {
             await CarregarProdutosAsync(txtBuscaProduto.Text.Trim());
         }
 
+        // Carrega produtos no grid, listando todos ou filtrando por texto.
+        // O QUE FAZ: sem filtro consulta EstoqueService.GetAllAsync; com filtro usa
+        // EstoqueService.BuscarAsync. O resultado vira o DataSource do dgvProdutos.
+        // POR QUE EXISTE: alimenta a escolha de itens pelo operador e é usada tanto na
+        // carga inicial (OnLoad) quanto na busca em tempo real.
+        // DEPENDÊNCIAS: _estoqueService; atualiza dgvProdutos e o campo _produtos.
         private async Task CarregarProdutosAsync(string filtro = "")
         {
             _produtos = string.IsNullOrWhiteSpace(filtro)
@@ -272,6 +319,12 @@ namespace PDVStore.Forms
             dgvProdutos.DataSource = _produtos;
         }
 
+        // Carrega a lista de clientes no ComboBox, incluindo "Consumidor Final".
+        // O QUE FAZ: consulta ClienteService.ListarAsync e preenche o cmbCliente com a
+        // opção padrão "— Consumidor Final —" seguida dos nomes (mostrando débito).
+        // POR QUE EXISTE: clientes são necessários principalmente para vendas fiadas,
+        // mas o combo sempre inicia no consumidor final para vendas comuns.
+        // DEPENDÊNCIAS: _clienteService; atualiza cmbCliente.
         private async Task CarregarClientesAsync()
         {
             _clientes = await _clienteService.ListarAsync();
@@ -283,6 +336,12 @@ namespace PDVStore.Forms
                 cmbCliente.SelectedIndex = 0;
         }
 
+        // Preenche o ComboBox de formas de pagamento disponíveis.
+        // O QUE FAZ: adiciona as opções Dinheiro, PIX, Cartão Crédito, Cartão Débito
+        // e Fiado ao cmbFormaPagamento.
+        // POR QUE EXISTE: fixa as formas aceitas pela regra de negócio do caixa e
+        // evita que o operador digite um valor livre inválido.
+        // QUEM CHAMA: OnLoad.
         private void PreencherFormasPagamento()
         {
             cmbFormaPagamento.Items.AddRange(new object[]
@@ -291,12 +350,24 @@ namespace PDVStore.Forms
             });
         }
 
+        // Retorna o Cliente efetivamente selecionado no combo, ou null para consumidor final.
+        // O QUE FAZ: converte o índice do combo na posição da lista _clientes (índice 0
+        // é "Consumidor Final", índices 1..n equivalem a _clientes[0..n-1]).
+        // POR QUE EXISTE: liga a escolha visual ao objeto de negócio Cliente, necessário
+        // nas vendas fiadas e no recibo correspondente.
+        // DEPENDÊNCIAS: _clientes e cmbCliente.
         private Cliente? ObterClienteSelecionado()
         {
             int idx = cmbCliente.SelectedIndex;
             return (idx <= 0 || idx > _clientes.Count) ? null : _clientes[idx - 1];
         }
 
+        // Adiciona o produto selecionado ao carrinho na quantidade digitada.
+        // O QUE FAZ: valida seleção, quantidade e estoque disponível; se o produto já
+        // estiver no carrinho soma a quantidade, senão cria um novo ItemVenda.
+        // POR QUE EXISTE: aplica a regra de negócio de venda — não addar quantidade
+        // maior que o estoque e junta itens repetidos para um único subtotal.
+        // DEPENDÊNCIAS: dgvProdutos, txtQuantidade e o _viewModel; depois RefreshCarrinho.
         private void AdicionarItem(object? sender, EventArgs e)
         {
             if (dgvProdutos.CurrentRow?.DataBoundItem is not Produto produto)
@@ -339,6 +410,12 @@ namespace PDVStore.Forms
             txtBuscaProduto.Focus();
         }
 
+        // Atualiza a exibição do carrinho e os totais da venda.
+        // O QUE FAZ: reatribui o DataSource do dgvItens com a lista do _viewModel e
+        // recalcula os totais (lblTotal e troco).
+        // POR QUE EXISTE: após qualquer alteração nos itens (adicionar/remover) o grid
+        // precisa ser reexibido para o operador ver o estado atual da venda.
+        // QUEM CHAMA: AdicionarItem e RemoverItem.
         private void RefreshCarrinho()
         {
             dgvItens.DataSource = null;
@@ -346,6 +423,12 @@ namespace PDVStore.Forms
             AtualizarTotais();
         }
 
+        // Remove o item selecionado do carrinho de venda.
+        // O QUE FAZ: se existe um ItemVenda na linha corrente do dgvItens, remove-o da
+        // lista do _viewModel e atualiza o grid.
+        // POR QUE EXISTE: permite corrigir a venda antes de finalizar, retirando itens
+        // adicionados por engano.
+        // DEPENDÊNCIAS: dgvItens, _viewModel e RefreshCarrinho.
         private void RemoverItem(object? sender, EventArgs e)
         {
             if (dgvItens.CurrentRow?.DataBoundItem is ItemVenda item)
@@ -355,6 +438,12 @@ namespace PDVStore.Forms
             }
         }
 
+        // Esvazia completamente o carrinho e reseta os campos de pagamento.
+        // O QUE FAZ: chama _viewModel.Limpar(), zera desconto e valor recebido, limpa o
+        // grid e recalcula os totais.
+        // POR QUE EXISTE: oferece ao operador a opção de cancelar/descartar toda a venda
+        // em andamento e é reutilizada após uma venda concluída.
+        // DEPENDÊNCIAS: _viewModel, txtDesconto, txtValorRecebido e AtualizarTotais.
         private void LimparVenda(object? sender, EventArgs e)
         {
             _viewModel.Limpar();
@@ -364,6 +453,12 @@ namespace PDVStore.Forms
             AtualizarTotais();
         }
 
+        // Recalcula o desconto e o total da venda exibidos na tela.
+        // O QUE FAZ: interpreta o txtDesconto (nunca negativo), aplica ao _viewModel e
+        // atualiza o rótulo do total; depois recalcula o troco.
+        // POR QUE EXISTE: o total precisa reagir imediatamente quando o operador digita
+        // um desconto — regra comercial comum em PDV.
+        // DEPENDÊNCIAS: _viewModel (Total) e AtualizarTroco; disparado pelo TextChanged.
         private void AtualizarTotais()
         {
             _viewModel.Desconto = 0;
@@ -374,6 +469,12 @@ namespace PDVStore.Forms
             AtualizarTroco();
         }
 
+        // Calcula o troco com base no valor recebido e no total da venda.
+        // O QUE FAZ: subtrai o total do _viewModel do valor digitado em txtValorRecebido,
+        // guarda em _troco e mostra no rótulo (ou "Valor insuficiente").
+        // POR QUE EXISTE: orienta o operador sobre quanto devolver ao cliente e bloqueia
+        // visualmente valores recebidos abaixo do total.
+        // DEPENDÊNCIAS: txtValorRecebido, _viewModel.Total e lblValorTroco.
         private void AtualizarTroco()
         {
             _troco = 0;
@@ -385,6 +486,12 @@ namespace PDVStore.Forms
 
         private decimal _troco;
 
+        // Gera o texto do recibo de venda a partir da venda registrada e do cliente.
+        // O QUE FAZ: monta um StringBuilder com o "cupom" (cabeçalho, itens, desconto,
+        // total, forma de pagamento e troco; para fiado inclui linha de assinatura).
+        // POR QUE EXISTE: produz o comprovante legível em fonte monoespaçada, usado
+        // tanto para exibir na tela quanto para imprimir/salvar.
+        // DEPENDÊNCIAS: _viewModel (itens) e Session (operador).
         private string GerarReciboTexto(Venda venda, Cliente? cliente)
         {
             var sb = new StringBuilder();
@@ -422,6 +529,12 @@ namespace PDVStore.Forms
             return sb.ToString();
         }
 
+        // Salva o texto do recibo em um arquivo .txt na pasta "Recibos".
+        // O QUE FAZ: garante a existência da pasta (junto ao executável), cria um nome
+        // de arquivo com data/hora e grava o texto em UTF-8.
+        // POR QUE EXISTE: mantém um histórico físico auditável das vendas na máquina,
+        // além do registro no banco de dados.
+        // DEPENDÊNCIAS: System.IO; chamado por FinalizarVenda (retorna o caminho).
         private string SalvarRecibo(string texto)
         {
             var pasta = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Recibos");
@@ -431,12 +544,24 @@ namespace PDVStore.Forms
             return caminho;
         }
 
+        // Prepara o documento de impressão, ligando apenas a página a desenhar.
+        // O QUE FAZ: cria um PrintDocument e assina o evento PrintPage com o método
+        // que desenha o texto do recibo no papel.
+        // POR QUE EXISTE: a impressão no WinForms é dirigida por eventos — é preciso
+        // configurar o documento uma única vez e depois disparar .Print().
+        // QUEM CHAMA: ImprimirRecibo (somente se _printDocument ainda for nulo).
         private void ConfigurarImpressao()
         {
             _printDocument = new PrintDocument();
             _printDocument.PrintPage += ImprimirRecibo_PrintPage;
         }
 
+        // Desenha cada linha do recibo na página impressa.
+        // O QUE FAZ: se há texto a imprimir, divide-o em linhas e usa DrawString com
+        // fonte Courier New, avançando a posição Y linha a linha.
+        // POR QUE EXISTE: é o handler de PrintPage que transforma o texto em um layout
+        // de impressão limpo e legível.
+        // QUEM CHAMA: disparado pelo PrintDocument durante .Print().
         private void ImprimirRecibo_PrintPage(object? sender, System.Drawing.Printing.PrintPageEventArgs e)
         {
             if (string.IsNullOrWhiteSpace(_reciboTextoParaImprimir))
@@ -452,6 +577,12 @@ namespace PDVStore.Forms
             }
         }
 
+        // Abre o diálogo de impressão e envia o recibo para a impressora escolhida.
+        // O QUE FAZ: garante que o PrintDocument exista, mostra um PrintDialog (com
+        // pré-visualização do sistema) e chama _printDocument.Print(); erros são avisados.
+        // POR QUE EXISTE: entrega ao operador o controle da impressão (impressora,
+        // orientação etc.) antes de gerar o papel.
+        // DEPENDÊNCIAS: ConfigurarImpressao e _reciboTextoParaImprimir.
         private void ImprimirRecibo()
         {
             if (_printDocument == null)
@@ -471,6 +602,14 @@ namespace PDVStore.Forms
             }
         }
 
+        // Finaliza a venda: valida, registra no banco, exibe recibo e limpa o carrinho.
+        // O QUE FAZ: valida itens; para fiado exige cliente e confere limite de crédito;
+        // para dinheiro exige troco >= 0; monta a Venda, chama VendaService.
+        // RegistrarVendaAsync, gera/salva/imprime o recibo e reinicia o PDV.
+        // POR QUE EXISTE: é o coração da regra de negócio do caixa — garante que o
+        // pagamento é coerente e que o estoque/valor são controlados pelo serviço.
+        // DEPENDÊNCIAS: _viewModel, _vendaService, Session; usa GerarReciboTexto,
+        // SalvarRecibo, ImprimirRecibo, ObterClienteSelecionado e LimparVenda.
         private async void FinalizarVenda(object? sender, EventArgs e)
         {
             if (_viewModel.Itens.Count == 0)

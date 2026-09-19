@@ -16,6 +16,12 @@ namespace PDVStore
 {
     internal static class Program
     {
+        // Ponto de entrada do sistema: configura o runtime do WinForms e o Serilog
+        // (logging em arquivo rotativo). Sobe o container de DI via CreateHostBuilder
+        // e executa a splash (frmSplash), que verifica configuração, conexão, migrações
+        // e o acesso administrativo antes de liberar o login. Cada login cria um escopo
+        // próprio de serviços, mantendo um PDVContext por sessão; ao final, o Log é
+        // descarregado com CloseAndFlush.
         /// <summary>
         ///  The main entry point for the application.
         /// </summary>
@@ -91,6 +97,12 @@ namespace PDVStore
             }
         }
 
+        // Constrói o host de serviços da aplicação registrando todas as dependências
+        // no container de DI: o PDVContext (SQL Server), os serviços de negócio
+        // (VendaService, EstoqueService etc.) e todos os formulários (frmLogin, frmPDV...).
+        // É chamado pelo Main() para iniciar o app; os componentes são registrados como
+        // AddTransient, então uma nova instância é criada a cada solicitação, sempre
+        // carregando a string de conexão do appsettings via ConnectionHelper.
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
                 .ConfigureServices((context, services) =>

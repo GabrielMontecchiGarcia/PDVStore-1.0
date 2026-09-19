@@ -8,6 +8,10 @@ namespace PDVStore.Tests;
 [TestFixture]
 public class RelatorioServiceTests : TesteBanco
 {
+    // Método auxiliar de montagem: cadastra três produtos (arroz abaixo do mínimo, cuscuz
+    // e tempero) e três vendas (duas concluídas de arroz e uma cancelada de cuscuz).
+    // Devolve o serviço de relatório e os produtos mais usados nos asserts. Protege a
+    // regra central dos relatórios: vendas canceladas não entram nas contas.
     private async Task<(RelatorioService Service, Produto Arroz, Produto Cuscuz)> SetupAsync()
     {
         var arroz = new Produto { Nome = "Arroz", CodigoBarras = "1", Preco = 20m, Estoque = 2, EstoqueMinimo = 5, Ativo = true };
@@ -23,6 +27,8 @@ public class RelatorioServiceTests : TesteBanco
         return (new RelatorioService(Context), arroz, cuscuz);
     }
 
+    // Método auxiliar de montagem: grava uma venda com o status e as quantidades
+    // informadas, permitindo montar cenários de vendas concluídas/canceladas.
     private async Task RegistrarVendaAsync(int produtoMenorId, string status, int qtd1, int qtd2 = 0)
     {
         var venda = new Venda
@@ -45,6 +51,11 @@ public class RelatorioServiceTests : TesteBanco
         await Context.SaveChangesAsync();
     }
 
+    // Cenário: vendas concluídas e canceladas dentro do período pesquisado.
+    // Valida que o relatório de itens mais vendidos considera somente vendas
+    // CONCLUÍDAS (Arroz soma 5), calcula valor/código/status de estoque e exclui
+    // produtos cujas vendas foram canceladas. Protege a principal regra do relatório:
+    // venda cancelada nunca aparece como desempenho.
     [Test]
     public async Task GerarRelatorioItensMaisVendidos_ApenasConcluidasEEmPeriodo()
     {
@@ -64,6 +75,9 @@ public class RelatorioServiceTests : TesteBanco
         Assert.That(relatorio.First().NomeProduto, Is.EqualTo("Arroz")); // ordem por quantidade
     }
 
+    // Cenário: relatório de mais vendidos com topN = 1.
+    // Valida que o parâmetro topN limita a quantidade de itens retornados. Protege o
+    // "ranking top X" usado no dashboard e em resumos rápidos.
     [Test]
     public async Task GerarRelatorioItensMaisVendidos_TopN_RespeitaLimite()
     {
@@ -72,6 +86,10 @@ public class RelatorioServiceTests : TesteBanco
         Assert.That(relatorio.Count, Is.EqualTo(1));
     }
 
+    // Cenário: apenas o arroz está com estoque (2) abaixo do mínimo (5); tempero e cuscuz
+    // estão saudáveis.
+    // Valida que o relatório de estoque mínimo retorna somente os produtos em alerta,
+    // com seu estoque atual. Protege a regra de reposição: só mostra o que falta.
     [Test]
     public async Task GerarRelatorioEstoqueMinimo_SomenteProdutosEmAlerta()
     {
@@ -83,6 +101,10 @@ public class RelatorioServiceTests : TesteBanco
         Assert.That(alerta.Single().Estoque, Is.EqualTo(2));
     }
 
+    // Cenário: três vendas gravadas no banco.
+    // Valida que GetTotalVendasAsync conta TODAS as vendas (3), inclusive as
+    // canceladas. Protege o contador geral da loja, que difere dos relatórios de
+    // desempenho por não filtrar por status.
     [Test]
     public async Task GetTotalVendasAsync_ContaTodas()
     {
@@ -90,6 +112,9 @@ public class RelatorioServiceTests : TesteBanco
         Assert.That(await service.GetTotalVendasAsync(), Is.EqualTo(3));
     }
 
+    // Cenário: geração e exportação do relatório de itens mais vendidos para PDF.
+    // Valida que o arquivo é físico, existe e não está vazio. Protege a entrega do
+    // relatório para impressão ou arquivo pelo gestor.
     [Test]
     public async Task ExportarPDF_CriaArquivoValido()
     {
@@ -103,6 +128,9 @@ public class RelatorioServiceTests : TesteBanco
         Assert.That(new FileInfo(caminho).Length, Is.GreaterThan(0));
     }
 
+    // Cenário: exportação de PDF com lista de relatório vazia (período sem dados).
+    // Valida que o serviço não lança exceção e ainda gera o arquivo. Protege a regra
+    // de que períodos sem vendas não podem travar a exportação do relatório.
     [Test]
     public async Task ExportarPdf_ListaVazia_NaoFalha()
     {
@@ -114,6 +142,9 @@ public class RelatorioServiceTests : TesteBanco
         Assert.That(File.Exists(caminho), Is.True);
     }
 
+    // Cenário: exportação do relatório de estoque mínimo para Excel.
+    // Valida que o arquivo .xlsx é físico, existe e não está vazio. Protege a geração
+    // da planilha usada pelo gestor na análise de reposição.
     [Test]
     public async Task ExportarExcel_CriaArquivoValido()
     {

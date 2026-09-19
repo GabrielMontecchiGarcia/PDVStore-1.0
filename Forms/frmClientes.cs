@@ -30,6 +30,12 @@ namespace PDVStore.Forms
         private string _telefoneOriginal = string.Empty;
         private string _emailOriginal = string.Empty;
 
+        // CONSTRUTOR
+        // O que faz: guarda o ClienteService e monta toda a interface com BuildUI().
+        // Por que existe: os clientes deste PDV trabalham com fiado/caderneta, então a
+        //   tela precisa de campos de cadastro, limite de crédito e recebimento.
+        // Dependências: recebe ClienteService por injeção; no evento Load dispara
+        //   CarregarAsync() para listar os clientes ao abrir.
         public frmClientes(ClienteService clienteService)
         {
             _clienteService = clienteService ?? throw new ArgumentNullException(nameof(clienteService));
@@ -37,6 +43,11 @@ namespace PDVStore.Forms
             Load += async (_, _) => await CarregarAsync();
         }
 
+        // O que faz: cria os campos de cadastro, os botões de ação e o grid de clientes.
+        // Por que existe: o formulário é montado em código (sem .Designer); a organização
+        //   visual facilita o cadastro rápido de clientes e a leitura da lista.
+        // Dependências: cria dgvClientes e liga eventos — TextChanged das máscaras,
+        //   SelectionChanged do grid e os cliques (Salvar, Novo, Editar, Desativar, Receber).
         private void BuildUI()
         {
             Text = "Clientes (Fiado / Caderneta)";
@@ -115,6 +126,11 @@ namespace PDVStore.Forms
             Controls.Add(dgvClientes);
         }
 
+        // O que faz: busca todos os clientes e preenche o dgvClientes.
+        // Por que existe: é a fonte de dados da tela — sem ela o grid ficaria vazio;
+        //   também deixa visível o saldo devedor (fiado) de cada cliente.
+        // Dependências: chama ClienteService.ListarAsync(); atualiza dgvClientes e é usado
+        //   no Load, após salvar, desativar e receber débitos.
         private async Task CarregarAsync()
         {
             try
@@ -128,6 +144,11 @@ namespace PDVStore.Forms
             }
         }
 
+        // O que faz: quando o usuário seleciona uma linha do grid, carrega esse cliente
+        //   em _clienteSelecionado e preenche os campos.
+        // Por que existe: permite editar, desativar ou receber o débito do cliente certo,
+        //   sem digitar os dados novamente (regra de UX).
+        // Dependências: disparado por dgvClientes.SelectionChanged; chama PreencherCampos().
         private void SelecionarCliente()
         {
             if (dgvClientes.CurrentRow?.DataBoundItem is Cliente c)
@@ -137,6 +158,11 @@ namespace PDVStore.Forms
             }
         }
 
+        // O que faz: move os dados do cliente selecionado para os TextBoxes da tela.
+        // Por que existe: reaproveita o preenchimento entre seleção e edição (um único
+        //   ponto de manutenção) e aplica as máscaras de CPF/CNPJ e telefone.
+        // Dependências: usa Mascaras.FormatarCpfCnpj/FormatarTelefone; guarda os valores
+        //   originais (_docOriginal etc.) para validar somente o que mudou no Salvar.
         private void PreencherCampos(Cliente c)
         {
             _docOriginal = c.CpfCnpj ?? string.Empty;
@@ -150,10 +176,27 @@ namespace PDVStore.Forms
             txtLimite.Text = c.LimiteCredito.ToString("0.00");
         }
 
+        // EVENTO - digitação no campo CPF/CNPJ
+        // O que faz: aplica a máscara de CPF ou CNPJ enquanto o usuário digita.
+        // Por que existe: padroniza a entrada e evita gravar documentos inválidos ou
+        //   com formatação diferente (regra de negócio tributária/fiscal).
+        // Dependências: chamado pelo TextChanged; delega a AplicarMascara() usando
+        //   Mascaras.FormatarCpfCnpj (Helpers).
         private void TxtCpfCnpj_TextChanged(object? sender, EventArgs e) => AplicarMascara(txtCpfCnpj, Mascaras.FormatarCpfCnpj);
 
+        // EVENTO - digitação no campo Telefone
+        // O que faz: aplica a máscara de telefone (com DDD) durante a digitação.
+        // Por que existe: mantém o telefone padronizado para contato do cliente (UX) e
+        //   facilita a validação de mínimo de 10 dígitos ao salvar.
+        // Dependências: chamado pelo TextChanged; delega a AplicarMascara() usando
+        //   Mascaras.FormatarTelefone (Helpers).
         private void TxtTelefone_TextChanged(object? sender, EventArgs e) => AplicarMascara(txtTelefone, Mascaras.FormatarTelefone);
 
+        // O que faz: aplica um formatador de máscara ao TextBox recebido.
+        // Por que existe: a reentrada do TextChanged (ao alterar txt.Text) geraria loop;
+        //   o flag _mascaraAplicando evita reprocessar o próprio evento (técnica didática).
+        // Dependências: genérico — é chamado por TxtCpfCnpj_TextChanged e TxtTelefone_TextChanged
+        //   com a função Mascaras apropriada para cada campo.
         private void AplicarMascara(TextBox txt, Func<string?, string> formatar)
         {
             if (_mascaraAplicando) return;
@@ -163,6 +206,11 @@ namespace PDVStore.Forms
             _mascaraAplicando = false;
         }
 
+        // EVENTO - botão "Editar"
+        // O que faz: carrega o cliente da linha selecionada nos campos para alteração.
+        // Por que existe: o usuário precisa conferir/corrigir dados antes de salvar;
+        //   sem uma linha selecionada, avisa com um MessageBox (regra de UX).
+        // Dependências: lê dgvClientes.CurrentRow, chama PreencherCampos() e dá foco ao nome.
         private void EditarCliente(object? sender, EventArgs e)
         {
             if (dgvClientes.CurrentRow?.DataBoundItem is not Cliente c)
@@ -176,6 +224,12 @@ namespace PDVStore.Forms
             txtNome.Focus();
         }
 
+        // O que faz: valida os campos (nome, CPF/CNPJ, telefone, e-mail) e salva o cliente.
+        // Por que existe: implementa as regras do fiado/caderneta — CPF válido para pessoa
+        //   física e CNPJ para jurídica, telefone mínimo de 10 dígitos e e-mail válido;
+        //   valida novamente só o que o usuário alterou.
+        // Dependências: usa Mascaras (SomenteDigitos, ValidarCpf/Cnpj, ValidarEmail, ParseDecimal)
+        //   e ClienteService.SalvarAsync(); ao final chama CarregarAsync() e LimparCampos().
         private async Task SalvarAsync()
         {
             if (string.IsNullOrWhiteSpace(txtNome.Text))
@@ -242,6 +296,11 @@ namespace PDVStore.Forms
             }
         }
 
+        // O que faz: marca o cliente selecionado como inativo no banco.
+        // Por que existe: clientes inadimplentes podem ser desativados em vez de apagados,
+        //   preservando o histórico de débitos e vendas (regra de negócio contábil).
+        // Dependências: chama ClienteService.AtualizarStatusAsync(id, false); depois
+        //   recarrega o grid (CarregarAsync) e limpa os campos (LimparCampos).
         private async Task DesativarAsync()
         {
             if (_clienteSelecionado == null)
@@ -256,6 +315,11 @@ namespace PDVStore.Forms
             LimparCampos();
         }
 
+        // O que faz: registra um pagamento (parcial ou total) do débito do cliente.
+        // Por que existe: é o coração do fiado/caderneta — permite quitar a dívida,
+        //   considera pagamentos parciais e bloqueia valores acima do saldo devedor.
+        // Dependências: usa Helpers.PromptDialog.AskDecimal, ClienteService.ReceberFiadoAsync()
+        //   e CarregarAsync() para atualizar o saldo exibido no grid.
         private async Task ReceberAsync()
         {
             if (_clienteSelecionado == null)
@@ -317,6 +381,11 @@ namespace PDVStore.Forms
             await CarregarAsync();
         }
 
+        // O que faz: limpa todos os campos e zera _clienteSelecionado (modo novo).
+        // Por que existe: prepara a tela para um novo cadastro após salvar/desativar ou
+        //   quando o usuário clica em "Novo"; também apaga os "originais" de validação.
+        // Dependências: manipula diretamente os TextBoxes da tela; chamado pelos botões
+        //   "Novo" (lambda), por SalvarAsync() e DesativarAsync().
         private void LimparCampos()
         {
             txtNome.Clear();

@@ -17,6 +17,13 @@ public static class PreparadorAmbiente
     /// Roda todas as etapas da preparação em sequência, reportando progresso.
     /// Etapas críticas lançam exceção; as demais são registradas como avisos e seguidas.
     /// </summary>
+    // Orquestra as 7 etapas da preparação em sequência, atualizando a barra de progresso (1 a 7)
+    // e emitindo o log de cada ação. Etapas já satisfeitas são puladas com aviso no log.
+    // POR QUE em um só fluxo: garante a ordem correta das dependências — primeiro o SDK e o
+    // LocalDB, depois a ferramenta de migrações, o PATH, a instância LocalDB, as migrações e,
+    // por fim, a publicação do aplicativo. Exceções indicam a etapa que falhou e são relançadas.
+    // Dependências: SetupContext (estado), InstaladorInfo (caminhos), Downloader (downloads) e
+    // ProcessUtil (processos externos); chama os métodos privados de instalação desta classe.
     public static async Task ExecutarAsync(
         SetupContext ctx,
         Action<int> onProgresso,
@@ -68,6 +75,12 @@ public static class PreparadorAmbiente
         }
     }
 
+    // Baixa o script oficial dotnet-install.ps1 e instala o SDK .NET 8 na pasta do usuário,
+    // sem exigir privilégios de administrador.
+    // POR QUE o modo "sem admin": o SDK é instalado por usuário (via -InstallDir e -NoPath),
+    // evitando UAC e mantendo o instalador simples; se o processo falhar, lança exceção.
+    // Dependências: InstaladorInfo (URL, canais e caminhos), Downloader (download com progresso)
+    // e ProcessUtil (executa o powershell.exe com o script baixado).
     private static async Task InstalarSdkDotNetAsync(Action<string> onLog, System.Threading.CancellationToken ct)
     {
         var pastaTemp = InstaladorInfo.DirTemporario;
@@ -100,6 +113,11 @@ public static class PreparadorAmbiente
             throw new Exception("Falha ao instalar o SDK .NET (código " + r.ExitCode + ").");
     }
 
+    // Baixa o SQL Server Express LocalDB e o instala de forma silenciosa via MSI (msiexec /qn).
+    // POR QUE aceitar o código 3010 como sucesso: 3010 significa "instalado com reinicialização
+    // pendente", comum no LocalDB, e não deve ser tratado como erro de instalação.
+    // Dependências: InstaladorInfo.SqlLocalDbMsiUrl, Downloader para baixar o .msi e ProcessUtil
+    // para executar o msiexec; a instalação pode exibir um pedido de confirmação do UAC.
     private static async Task InstalarLocalDbAsync(Action<string> onLog, System.Threading.CancellationToken ct)
     {
         var msi = Path.Combine(InstaladorInfo.DirTemporario, "SqlLocalDB.msi");
@@ -124,6 +142,12 @@ public static class PreparadorAmbiente
             throw new Exception("Falha ao instalar o LocalDB (código MSI " + r.ExitCode + ").");
     }
 
+    // Instala a ferramenta global dotnet-ef (EF Core Tools), requisito para aplicar migrações
+    // de banco pelo instalador.
+    // POR QUE exigir o dotnet antes: sem o SDK localizado não há como executar 'dotnet tool
+    // install'; por isso o método lança exceção orientando qual o problema real.
+    // Dependências: InstaladorInfo.LocalizarDotnet, ProcessUtil para rodar a instalação e o
+    // caminho DirFerramentasDotNet onde a ferramenta global será gravada.
     private static async Task InstalarDotNetEfAsync(Action<string> onLog, System.Threading.CancellationToken ct)
     {
         var dotnet = InstaladorInfo.LocalizarDotnet();
@@ -141,6 +165,14 @@ public static class PreparadorAmbiente
             throw new Exception("Falha ao instalar o dotnet-ef (código " + r.ExitCode + ").");
     }
 
+    // Adiciona os diretórios do .NET (ferramentas globais e SDK por usuário) ao PATH do usuário,
+    // gravando na chave HKCU\Environment do registro do Windows.
+    // POR QUE mexe só no HKCU: alterar o PATH do sistema exigiria elevação/UAC; o PATH do
+    // usuário é suficiente e menos invasivo. O valor expandido mantém referências como %VAR%.
+    // Regras: evita duplicar diretórios que já existem (compara ignorando maiúsculas e a barra
+    // final) e apenas anexa os que faltam.
+    // Dependências: Microsoft.Win32.Registry (HKCU\Environment) e InstaladorInfo.DirDotNet e
+    // DirFerramentasDotNet.
     private static async Task ConfigurarPathAsync(Action<string> onLog)
     {
         var dirs = new[] { InstaladorInfo.DirFerramentasDotNet, InstaladorInfo.DirDotNet }
@@ -183,6 +215,12 @@ public static class PreparadorAmbiente
         }
     }
 
+    // Garante que a instância LocalDB 'MSSQLLocalDB' exista e esteja em execução, criando e
+    // iniciando via SqlLocalDB.exe quando necessário.
+    // POR QUE aceitar "already exists"/"já existe": criar uma instância já existente retorna
+    // erro amigável; esse aviso é esperado num reboot posterior e não deve quebrar o fluxo.
+    // Dependências: ctx.CaminhoSqlLocalDb (preenchido pelo VerificadorRequisitos) e ProcessUtil;
+    // ao final marca ctx.LocalDbInstalado = true para os relatórios.
     private static async Task PrepararInstanciaLocalDbAsync(SetupContext ctx, Action<string> onLog, System.Threading.CancellationToken ct)
     {
         if (string.IsNullOrEmpty(ctx.CaminhoSqlLocalDb))
@@ -205,6 +243,13 @@ public static class PreparadorAmbiente
         ctx.LocalDbInstalado = true;
     }
 
+    // Aplica as migrações do EF Core executando 'dotnet ef database update' no projeto PDVStore,
+    // criando o banco PDV_StoreDB caso ainda não exista.
+    // POR QUE tratar falha como AVISO: se o projeto ou o dotnet-ef não forem encontrados, ou se
+    // a execução falhar, o próprio aplicativo aplica as migrações no primeiro acesso — então o
+    // instalador não deve abortar a instalação inteira por causa disso.
+    // Dependências: ctx.LocalizarProjeto(), InstaladorInfo (dotnet, dotnet-ef, PATH) e
+    // ProcessUtil com variáveis de ambiente extras (PATH e DOTNET_ROOT).
     private static async Task AplicarMigracoesAsync(SetupContext ctx, Action<string> onLog, System.Threading.CancellationToken ct)
     {
         ctx.CaminhoProjeto = ctx.LocalizarProjeto();
@@ -245,6 +290,12 @@ public static class PreparadorAmbiente
         }
     }
 
+    // Publica o aplicativo PDVStore em modo Release para o diretório de instalação escolhido e,
+    // quando possível, cria um atalho na área de trabalho.
+    // POR QUE falha vira AVISO: a publicação pode falhar por problemas de build/NuGet; o aplicativo
+    // continua executável pela pasta de build existente, então não vale bloquear a instalação.
+    // Dependências: ctx.LocalizarProjeto(), InstaladorInfo.LocalizarDotnet, ProcessUtil (dotnet
+    // publish e powershell para criar o .lnk via WScript.Shell) e System.IO para o diretório.
     private static async Task PublicarAplicativoAsync(SetupContext ctx, Action<string> onLog, System.Threading.CancellationToken ct)
     {
         ctx.CaminhoProjeto = ctx.LocalizarProjeto();

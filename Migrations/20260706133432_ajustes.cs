@@ -7,6 +7,21 @@ namespace PDVStore.Migrations
     /// <inheritdoc />
     public partial class ajustes : Migration
     {
+        // ==========================================================================
+        // MIGRAÇÃO "ajustes" — MÉTODO Up():
+        //
+        // Esta migration "ajusta" o modelo de Vendas/ItemVenda para refletir o novo
+        // domínio: a venda deixa de apontar para uma FormaPagamento (vira texto) e
+        // passa a ter vínculo com o usuário do caixa e com o caixa da operação.
+        //
+        // Principais ações:
+        //   1. Renomeia colunas em Vendas: Total -> ValorTotal, Data -> DataVenda e
+        //      FormaPagamentoId -> UsuarioCaixaId (a FK passa a representar o usuário).
+        //   2. Renomeia Produto -> ProdutoId em ItemVenda (fica explícito que é FK).
+        //   3. Adiciona em Vendas: CaixaId, Desconto, FormaPagamento (texto),
+        //      PixTxId (controle de pagamento via Pix) e Status (Pendente/Pago...).
+        //   4. Cria índices e FKs ligando ItemVenda -> Produtos e Vendas -> UsuarioCaixa.
+        // ==========================================================================
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -87,6 +102,14 @@ type: "INTEGER",
                 onDelete: ReferentialAction.Cascade);
         }
 
+        // ==========================================================================
+        // MIGRAÇÃO "ajustes" — MÉTODO Down():
+        //
+        // Reverte tudo o que o Up() fez: remove as FKs e índices, remove as colunas
+        // adicionadas (CaixaId, Desconto, FormaPagamento, PixTxId, Status) e devolve
+        // os nomes antigos das colunas (ValorTotal -> Total, UsuarioCaixaId ->
+        // FormaPagamentoId, DataVenda -> Data e ProdutoId -> Produto).
+        // ==========================================================================
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {

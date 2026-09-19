@@ -5,6 +5,11 @@ namespace PDVStore.Data
 {
     public class PDVContext : DbContext
     {
+        // Construtor do contexto Entity Framework Core: recebe as configurações de
+        // conexão com o SQL Server (montadas no registro de DI do Program.CreateHostBuilder)
+        // e entrega um PDVContext pronto para consultas e migrações. É o serviço central
+        // usado por todos os serviços do sistema (CaixaService, VendaService, EstoqueService...)
+        // para acessar as tabelas mapeadas pelos DbSets abaixo.
         public PDVContext(DbContextOptions<PDVContext> options) : base(options)
         {
         }
@@ -20,6 +25,12 @@ namespace PDVStore.Data
         public DbSet<Compra> Compras { get; set; }
         public DbSet<ItemCompra> ItensCompras { get; set; }
 
+        // Configuração do modelo EF Core (Fluent API): define relacionamentos, regras de
+        // exclusão (Restrict/SetNull/Cascade) e os dados iniciais (seed). È executado
+        // pelo EF quando o modelo é montado, antes de qualquer operação. Garante que
+        // excluir um caixa/fornecedor não apague vendas/validades legadas, que vendas
+        // sem cliente fiquem com ClienteId nulo (SetNull) e que existam o caixa padrão
+        // (Id=1) e o usuário Admin (senha inicial "admin123") na primeira carga.
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

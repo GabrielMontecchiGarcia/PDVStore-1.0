@@ -13,6 +13,11 @@ namespace PDVStore.Migrations
     [DbContext(typeof(PDVContext))]
     partial class PDVContextModelSnapshot : ModelSnapshot
     {
+        // ==========================================================================
+        // MÉTODO BuildModel(): monta o snapshot mais recente de TODO o modelo
+        // (estado atual do banco). É a referência que o EF Core usa para comparar
+        // com o PDVContext e detectar mudanças que geram novas migrations.
+        // ==========================================================================
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618

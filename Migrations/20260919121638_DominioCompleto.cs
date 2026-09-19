@@ -8,6 +8,25 @@ namespace PDVStore.Migrations
     /// <inheritdoc />
     public partial class DominioCompleto : Migration
     {
+        // ==========================================================================
+        // MIGRAÇÃO "DominioCompleto" — MÉTODO Up():
+        //
+        // Esta é a maior evolução do projeto: reorganiza o banco para o DOMÍNIO
+        // COMPLETO do PDV (clientes, caixa aberto/fechado, compras e fornecedores).
+        //
+        // 1. Refatora o modelo base:
+        //    - UsuarioCaixa -> Usuarios; ItemVenda -> ItensVendas;
+        //    - Produtos.EstoqueAtual -> EstoqueMinimo; PKs e índices renomeados.
+        // 2. Remoções: a tabela FormaPagamentos (pagamento virou texto em Vendas).
+        // 3. Novas colunas: Vendas.ClienteId (quem comprou) e Produtos.PrecoCusto
+        //    (para calcular margem); MovimentacoesEstoque.UsuarioId vira nullable.
+        // 4. Novas tabelas:
+        //    - Caixas: abertura, fechamento, valores e estado do caixa;
+        //    - Clientes: dados do cliente, limite de crédito e SaldoDevedor;
+        //    - Fornecedores + Compras + ItensCompras: reposição de estoque.
+        // 5. Seeds (caixa fechado inicial e Admin atualizado), índices e FKs
+        //    unindo todo o novo domínio.
+        // ==========================================================================
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -321,6 +340,16 @@ type: "INTEGER",
                 onDelete: ReferentialAction.Restrict);
         }
 
+        // ==========================================================================
+        // MIGRAÇÃO "DominioCompleto" — MÉTODO Down():
+        //
+        // Reverte a evolução completa: remove as FKs e tabelas novas (Caixas,
+        // Clientes, Fornecedores, Compras, ItensCompras), volta as colunas
+        // (ClienteId, PrecoCusto, UsuarioId não-nullable), renomeia tabelas/
+        // colunas/índices de volta (Usuarios -> UsuarioCaixa, ItensVendas ->
+        // ItemVenda, etc.) e restaura a tabela FormaPagamentos com o seed do
+        // Admin original.
+        // ==========================================================================
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
