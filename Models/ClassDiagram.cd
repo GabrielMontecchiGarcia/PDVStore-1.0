@@ -57,7 +57,7 @@
     <Lollipop Position="0.2" Collapsed="true" />
   </Class>
   <Class Name="PDVStore.Models.MovimentacaoEstoque">
-    <Position X="10.75" Y="3.25" Width="2.25" />
+    <Position X="10.75" Y="3.25" Width="2" />
     <TypeIdentifier>
       <HashCode>AAACAAAAAAAAAAAAACAAQAAAAIAAAAAACAAUAAAIAA0=</HashCode>
       <FileName>Models\MovimentacaoEstoque.cs</FileName>
@@ -79,7 +79,7 @@
     </TypeIdentifier>
   </Class>
   <Class Name="PDVStore.Models.UsuarioCaixa" BaseTypeListCollapsed="true">
-    <Position X="8.5" Y="4" Width="1.5" />
+    <Position X="8.5" Y="4" Width="2" />
     <TypeIdentifier>
       <HashCode>AAACAAAgAAIAACQAECEEAQAAQAAAAAAAAIAAwBEAAAA=</HashCode>
       <FileName>Models\UsuarioCaixa.cs</FileName>
@@ -87,7 +87,7 @@
     <Lollipop Position="0.2" Collapsed="true" />
   </Class>
   <Class Name="PDVStore.Models.Venda" BaseTypeListCollapsed="true">
-    <Position X="6.25" Y="0.5" Width="1.5" />
+    <Position X="6.25" Y="0.5" Width="1.75" />
     <TypeIdentifier>
       <HashCode>AAACAAAEAAAAEIAQABCAAAAAGAAAAAAAAAQAACBAgAA=</HashCode>
       <FileName>Models\Venda.cs</FileName>
