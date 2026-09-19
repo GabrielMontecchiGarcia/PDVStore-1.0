@@ -12,7 +12,15 @@ Sistema de Ponto de Venda (PDV) para pequenas lojas e comércios de bairro. Dese
 - Cadastro de **fornecedores** e **compras** (entrada de mercadorias atualiza o estoque automaticamente)
 - **Abertura e fechamento de caixa** com sangria e valor inicial
 - **Dashboard e relatórios** (itens mais vendidos, totais por forma de pagamento e alertas de estoque) com exportação em **PDF e Excel**
-- Login com usuários e permissões (**Operador / Administrador**)
+- Login com usuários e **papéis (permissões)**: **Administrador**, **Operador (Caixa)** e **Estoquista**
+
+### Papéis de acesso
+
+| Papel | Acesso |
+|---|---|
+| **Administrador** | Todas as funcionalidades (PDV, dashboard/relatórios, produtos, estoque, clientes, fornecedores, compras, caixa e usuários) |
+| **Operador (Caixa)** | Somente o **PDV** (vendas) |
+| **Estoquista** | Somente o **cadastro de produtos** |
 
 ---
 
@@ -181,9 +189,10 @@ No **Dashboard & Relatórios**:
 
 Em **Usuários** (somente Administrador cria/edita):
 
-- **Operador**: vende e vê relatórios básicos.
-- **Administrador**: gerencia usuários, produtos e configurações.
-- Cadastro de novo usuário exige nome, senha (mín. 6 caracteres) e confirmação. Foto opcional.
+- **Operador (Caixa)**: acesso apenas ao PDV (vendas).
+- **Estoquista**: acesso apenas ao cadastro de produtos.
+- **Administrador**: acesso total (todas as telas, incluindo usuários).
+- Cadastro de novo usuário exige nome, senha (mín. 6 caracteres), confirmação e **papel**. Foto opcional.
 
 ---
 

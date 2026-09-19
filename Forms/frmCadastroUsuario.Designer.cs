@@ -39,7 +39,8 @@
             btnEscolherFoto = new Button();
             btnCancelar = new Button();
             openFileDialog1 = new OpenFileDialog();
-            chkAdministrador = new CheckBox();
+            lblPermissao = new Label();
+            cboPermissao = new ComboBox();
             ((System.ComponentModel.ISupportInitialize)picFoto).BeginInit();
             SuspendLayout();
             // 
@@ -136,22 +137,30 @@
             // 
             openFileDialog1.FileName = "openFileDialog1";
             // 
-            // chkAdministrador
+            // lblPermissao
             // 
-            chkAdministrador.AutoSize = true;
-            chkAdministrador.Location = new Point(288, 150);
-            chkAdministrador.Name = "chkAdministrador";
-            chkAdministrador.Size = new Size(126, 24);
-            chkAdministrador.TabIndex = 12;
-            chkAdministrador.Text = "Administrador";
-            chkAdministrador.UseVisualStyleBackColor = true;
+            lblPermissao.AutoSize = true;
+            lblPermissao.Location = new Point(200, 150);
+            lblPermissao.Name = "lblPermissao";
+            lblPermissao.Size = new Size(55, 20);
+            lblPermissao.TabIndex = 13;
+            lblPermissao.Text = "Papel:";
+            // 
+            // cboPermissao
+            // 
+            cboPermissao.DropDownStyle = ComboBoxStyle.DropDownList;
+            cboPermissao.Location = new Point(288, 146);
+            cboPermissao.Name = "cboPermissao";
+            cboPermissao.Size = new Size(298, 28);
+            cboPermissao.TabIndex = 14;
             // 
             // frmCadastroUsuario
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(610, 276);
-            Controls.Add(chkAdministrador);
+            Controls.Add(cboPermissao);
+            Controls.Add(lblPermissao);
             Controls.Add(btnCancelar);
             Controls.Add(btnEscolherFoto);
             Controls.Add(btnSalvar);
@@ -182,6 +191,7 @@
         private Button btnEscolherFoto;
         private Button btnCancelar;
         private OpenFileDialog openFileDialog1;
-        private CheckBox chkAdministrador;
+        private Label lblPermissao;
+        private ComboBox cboPermissao;
     }
 }

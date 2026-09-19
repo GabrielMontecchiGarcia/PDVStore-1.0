@@ -15,6 +15,12 @@ namespace PDVStore.Forms
         private string? _caminhoFotoSelecionada;
         private UsuarioCaixa? _usuarioEmEdicao;
 
+        private sealed class OpcaoPermissao
+        {
+            public string Descricao { get; init; } = "";
+            public TipoPermissao Valor { get; init; }
+        }
+
         // Construtor para Novo Usuário
         public frmCadastroUsuario(PDVContext context)
         {
@@ -22,7 +28,8 @@ namespace PDVStore.Forms
             _context = context;
             this.Text = "Cadastrar Novo Usuário";
             CarregarImagemPadrao();
-            chkAdministrador.Checked = false; // Padrão: Operador
+            PreencherOpcoesPermissao();
+            cboPermissao.SelectedValue = TipoPermissao.Operador; // Padrão: Operador (Caixa)
         }
 
         // Construtor para Edição
@@ -32,7 +39,20 @@ namespace PDVStore.Forms
             _context = context;
             _usuarioEmEdicao = usuario;
             this.Text = $"Editar Usuário - {usuario.Nome}";
+            PreencherOpcoesPermissao();
             PreencherDadosParaEdicao();
+        }
+
+        private void PreencherOpcoesPermissao()
+        {
+            cboPermissao.DataSource = new[]
+            {
+                new OpcaoPermissao { Descricao = "Operador (Caixa) - apenas vendas (PDV)", Valor = TipoPermissao.Operador },
+                new OpcaoPermissao { Descricao = "Estoquista - apenas cadastro de produtos", Valor = TipoPermissao.Estoquista },
+                new OpcaoPermissao { Descricao = "Administrador - acesso total", Valor = TipoPermissao.Administrador }
+            };
+            cboPermissao.DisplayMember = nameof(OpcaoPermissao.Descricao);
+            cboPermissao.ValueMember = nameof(OpcaoPermissao.Valor);
         }
 
         private void CarregarImagemPadrao()
@@ -60,7 +80,7 @@ namespace PDVStore.Forms
             txtNome.Text = _usuarioEmEdicao.Nome;
             txtNome.Enabled = false; // Não permitir alterar nome
 
-            chkAdministrador.Checked = _usuarioEmEdicao.Permissao == TipoPermissao.Administrador;
+            cboPermissao.SelectedValue = _usuarioEmEdicao.Permissao;
 
             if (!string.IsNullOrEmpty(_usuarioEmEdicao.FotoPath) && File.Exists(_usuarioEmEdicao.FotoPath))
             {
@@ -158,6 +178,10 @@ namespace PDVStore.Forms
 
                 UsuarioCaixa usuario;
 
+                var permissaoSelecionada = cboPermissao.SelectedValue is TipoPermissao p
+                    ? p
+                    : TipoPermissao.Operador;
+
                 if (_usuarioEmEdicao == null) // NOVO USUÁRIO
                 {
                     if (_context.Usuarios.Any(u => u.Nome == txtNome.Text.Trim()))
@@ -169,7 +193,7 @@ namespace PDVStore.Forms
                     usuario = new UsuarioCaixa
                     {
                         Nome = txtNome.Text.Trim(),
-                        Permissao = chkAdministrador.Checked ? TipoPermissao.Administrador : TipoPermissao.Operador
+                        Permissao = permissaoSelecionada
                     };
 
                     _context.Usuarios.Add(usuario);
@@ -180,7 +204,7 @@ namespace PDVStore.Forms
                     // Atualiza permissão apenas se o usuário logado for Admin
                     if (PDVStore.Models.Session.CurrentUser?.EhAdmin() == true)
                     {
-                        usuario.Permissao = chkAdministrador.Checked ? TipoPermissao.Administrador : TipoPermissao.Operador;
+                        usuario.Permissao = permissaoSelecionada;
                     }
                 }
 

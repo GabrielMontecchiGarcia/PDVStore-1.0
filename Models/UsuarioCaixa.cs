@@ -46,12 +46,22 @@
         // Métodos de verificação de permissão
         public bool EhAdmin() => Permissao == TipoPermissao.Administrador;
         public bool PodeGerenciarUsuarios() => Permissao == TipoPermissao.Administrador;
+
+        public static string DescreverPermissao(TipoPermissao permissao) => permissao switch
+        {
+            TipoPermissao.Operador => "Operador (Caixa)",
+            TipoPermissao.Administrador => "Administrador",
+            TipoPermissao.Estoquista => "Estoquista",
+            _ => permissao.ToString()
+        };
     }
 
     public enum TipoPermissao
     {
-        Operador = 1,      // Pode vender, ver relatórios básicos
-        Administrador = 2  // Pode gerenciar usuários, configurações, etc.
+        Operador = 1,      // Acesso somente ao PDV (vendas)
+        Administrador = 2  // Acesso total (cadastros, relatórios, usuários, etc.)
+        ,
+        Estoquista = 3     // Acesso somente ao cadastro de produtos
     }
 
 

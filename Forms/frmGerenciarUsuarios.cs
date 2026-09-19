@@ -64,7 +64,7 @@ namespace PDVStore.Forms
                 {
                     u.Id,
                     u.Nome,
-                    Permissao = u.Permissao == TipoPermissao.Administrador ? "Administrador" : "Operador",
+                    Permissao = UsuarioCaixa.DescreverPermissao(u.Permissao),
                     Status = u.Ativo ? "Ativo" : "Inativo",
                     Foto = ObterImagemUsuario(u.FotoPath)   // carregamento seguro em memória
                 })

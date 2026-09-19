@@ -53,16 +53,7 @@ namespace PDVStore.Forms
                 WrapContents = true
             };
 
-            AddMenuButton(menu, "Vender (PDV)", OnVender);
-            AddMenuButton(menu, "Dashboard", OnDashboard);
-            AddMenuButton(menu, "Produtos", OnProdutos);
-            AddMenuButton(menu, "Estoque", OnEstoque);
-            AddMenuButton(menu, "Clientes", OnClientes);
-            AddMenuButton(menu, "Fornecedores", OnFornecedores);
-            AddMenuButton(menu, "Compras", OnCompras);
-            AddMenuButton(menu, "Abrir/Fechar Caixa", OnCaixa);
-            AddMenuButton(menu, "Usuários", OnUsuarios);
-            AddMenuButton(menu, "Sobre", OnSobre);
+            AdicionarBotoesPorPermissao(menu);
 
             Controls.Add(menu);
 
@@ -77,6 +68,39 @@ namespace PDVStore.Forms
             };
             btnSair.Click += (_, _) => Close();
             Controls.Add(btnSair);
+        }
+
+        // Exibe os botões conforme o papel do usuário logado:
+        //  - Administrador: acesso total a todas as telas.
+        //  - Operador (Caixa): apenas o PDV.
+        //  - Estoquista: apenas o cadastro de produtos.
+        private void AdicionarBotoesPorPermissao(FlowLayoutPanel menu)
+        {
+            var permissao = Session.CurrentUser?.Permissao ?? TipoPermissao.Operador;
+
+            switch (permissao)
+            {
+                case TipoPermissao.Administrador:
+                    AddMenuButton(menu, "Vender (PDV)", OnVender);
+                    AddMenuButton(menu, "Dashboard", OnDashboard);
+                    AddMenuButton(menu, "Produtos", OnProdutos);
+                    AddMenuButton(menu, "Estoque", OnEstoque);
+                    AddMenuButton(menu, "Clientes", OnClientes);
+                    AddMenuButton(menu, "Fornecedores", OnFornecedores);
+                    AddMenuButton(menu, "Compras", OnCompras);
+                    AddMenuButton(menu, "Abrir/Fechar Caixa", OnCaixa);
+                    AddMenuButton(menu, "Usuários", OnUsuarios);
+                    AddMenuButton(menu, "Sobre", OnSobre);
+                    break;
+
+                case TipoPermissao.Estoquista:
+                    AddMenuButton(menu, "Produtos", OnProdutos);
+                    break;
+
+                default: // Operador (Caixa)
+                    AddMenuButton(menu, "Vender (PDV)", OnVender);
+                    break;
+            }
         }
 
         private static void AddMenuButton(FlowLayoutPanel menu, string text, EventHandler onClick)
