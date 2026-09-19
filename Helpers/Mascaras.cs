@@ -24,11 +24,12 @@ namespace PDVStore.Helpers
                 if (d.Length >= 11) return $"{d.Substring(0, 3)}.{d.Substring(3, 3)}.{d.Substring(6, 3)}-{d.Substring(9, 2)}";
                 if (d.Length >= 9) return $"{d.Substring(0, 3)}.{d.Substring(3, 3)}.{d.Substring(6)}";
                 if (d.Length >= 6) return $"{d.Substring(0, 3)}.{d.Substring(3)}";
-                if (d.Length >= 3) return d.Substring(0, 3);
-                return d;
+                return d; // 1 a 5 dígitos ainda sem máscara
             }
 
-            return $"{d.Substring(0, 2)}.{d.Substring(2, 3)}.{d.Substring(5, 3)}/{d.Substring(8, 4)}-{d.Substring(12, 2)}";
+            if (d.Length >= 14) return $"{d.Substring(0, 2)}.{d.Substring(2, 3)}.{d.Substring(5, 3)}/{d.Substring(8, 4)}-{d.Substring(12, 2)}";
+            if (d.Length == 13) return $"{d.Substring(0, 2)}.{d.Substring(2, 3)}.{d.Substring(5, 3)}/{d.Substring(8, 4)}-{d[12]}";
+            return $"{d.Substring(0, 2)}.{d.Substring(2, 3)}.{d.Substring(5, 3)}/{d.Substring(8, 4)}";
         }
 
         /// <summary>

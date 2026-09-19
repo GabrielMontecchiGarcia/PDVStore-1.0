@@ -22,6 +22,9 @@ namespace PDVStore.Forms
         private Button btnNovo = null!;
         private Button btnDesativar = null!;
         private bool _mascaraAplicando;
+        private string _cnpjOriginal = string.Empty;
+        private string _telefoneOriginal = string.Empty;
+        private string _emailOriginal = string.Empty;
 
         public frmFornecedores(FornecedorService fornecedorService)
         {
@@ -112,6 +115,9 @@ namespace PDVStore.Forms
             if (dgvFornecedores.CurrentRow?.DataBoundItem is Fornecedor f)
             {
                 _fornecedorSelecionado = f;
+                _cnpjOriginal = f.Cnpj ?? string.Empty;
+                _telefoneOriginal = f.Telefone ?? string.Empty;
+                _emailOriginal = f.Email ?? string.Empty;
                 txtNome.Text = f.Nome;
                 txtCnpj.Text = Mascaras.FormatarCpfCnpj(f.Cnpj);
                 txtTelefone.Text = Mascaras.FormatarTelefone(f.Telefone);
@@ -140,24 +146,37 @@ namespace PDVStore.Forms
                 return;
             }
 
+            bool editando = _fornecedorSelecionado != null;
             var digitosDoc = Mascaras.SomenteDigitos(txtCnpj.Text);
-            bool documentoValido = digitosDoc.Length == 14 && Mascaras.ValidarCnpj(digitosDoc);
-            if (!documentoValido)
+            var digitosTelefone = Mascaras.SomenteDigitos(txtTelefone.Text);
+            string email = txtEmail.Text.Trim();
+
+            if (!editando || digitosDoc != Mascaras.SomenteDigitos(_cnpjOriginal))
             {
-                MessageBox.Show("Informe um CNPJ válido.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                bool documentoValido = digitosDoc.Length == 14 && Mascaras.ValidarCnpj(digitosDoc);
+                if (!documentoValido)
+                {
+                    MessageBox.Show("Informe um CNPJ válido.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
             }
 
-            if (Mascaras.SomenteDigitos(txtTelefone.Text).Length < 10)
+            if (!editando || digitosTelefone != Mascaras.SomenteDigitos(_telefoneOriginal))
             {
-                MessageBox.Show("Informe um telefone válido com DDD (mínimo 10 dígitos).", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                if (digitosTelefone.Length < 10)
+                {
+                    MessageBox.Show("Informe um telefone válido com DDD (mínimo 10 dígitos).", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
             }
 
-            if (!Mascaras.ValidarEmail(txtEmail.Text))
+            if (!editando || !string.Equals(email, _emailOriginal.Trim(), StringComparison.OrdinalIgnoreCase))
             {
-                MessageBox.Show("Informe um e-mail válido.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                if (!Mascaras.ValidarEmail(email))
+                {
+                    MessageBox.Show("Informe um e-mail válido.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
             }
 
             try
@@ -166,7 +185,7 @@ namespace PDVStore.Forms
                 fornecedor.Nome = txtNome.Text.Trim();
                 fornecedor.Cnpj = Mascaras.FormatarCpfCnpj(txtCnpj.Text);
                 fornecedor.Telefone = Mascaras.FormatarTelefone(txtTelefone.Text);
-                fornecedor.Email = txtEmail.Text.Trim();
+                fornecedor.Email = email;
 
                 await _fornecedorService.SalvarAsync(fornecedor);
 
@@ -201,6 +220,9 @@ namespace PDVStore.Forms
             txtTelefone.Clear();
             txtEmail.Clear();
             _fornecedorSelecionado = null;
+            _cnpjOriginal = string.Empty;
+            _telefoneOriginal = string.Empty;
+            _emailOriginal = string.Empty;
             txtNome.Focus();
         }
     }

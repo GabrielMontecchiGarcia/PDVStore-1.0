@@ -26,6 +26,9 @@ namespace PDVStore.Forms
         private Button btnDesativar = null!;
         private Button btnReceber = null!;
         private bool _mascaraAplicando;
+        private string _docOriginal = string.Empty;
+        private string _telefoneOriginal = string.Empty;
+        private string _emailOriginal = string.Empty;
 
         public frmClientes(ClienteService clienteService)
         {
@@ -136,6 +139,9 @@ namespace PDVStore.Forms
 
         private void PreencherCampos(Cliente c)
         {
+            _docOriginal = c.CpfCnpj ?? string.Empty;
+            _telefoneOriginal = c.Telefone ?? string.Empty;
+            _emailOriginal = c.Email ?? string.Empty;
             txtNome.Text = c.Nome;
             txtCpfCnpj.Text = Mascaras.FormatarCpfCnpj(c.CpfCnpj);
             txtTelefone.Text = Mascaras.FormatarTelefone(c.Telefone);
@@ -178,26 +184,39 @@ namespace PDVStore.Forms
                 return;
             }
 
+            bool editando = _clienteSelecionado != null;
             var digitosDoc = Mascaras.SomenteDigitos(txtCpfCnpj.Text);
-            bool documentoValido = digitosDoc.Length == 11 ? Mascaras.ValidarCpf(digitosDoc)
-                               : digitosDoc.Length == 14 ? Mascaras.ValidarCnpj(digitosDoc)
-                               : false;
-            if (!documentoValido)
+            var digitosTelefone = Mascaras.SomenteDigitos(txtTelefone.Text);
+            string email = txtEmail.Text.Trim();
+
+            if (!editando || digitosDoc != Mascaras.SomenteDigitos(_docOriginal))
             {
-                MessageBox.Show("Informe um CPF ou CNPJ válido.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                bool documentoValido = digitosDoc.Length == 11 ? Mascaras.ValidarCpf(digitosDoc)
+                                   : digitosDoc.Length == 14 ? Mascaras.ValidarCnpj(digitosDoc)
+                                   : false;
+                if (!documentoValido)
+                {
+                    MessageBox.Show("Informe um CPF ou CNPJ válido.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
             }
 
-            if (Mascaras.SomenteDigitos(txtTelefone.Text).Length < 10)
+            if (!editando || digitosTelefone != Mascaras.SomenteDigitos(_telefoneOriginal))
             {
-                MessageBox.Show("Informe um telefone válido com DDD (mínimo 10 dígitos).", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                if (digitosTelefone.Length < 10)
+                {
+                    MessageBox.Show("Informe um telefone válido com DDD (mínimo 10 dígitos).", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
             }
 
-            if (!Mascaras.ValidarEmail(txtEmail.Text))
+            if (!editando || !string.Equals(email, _emailOriginal.Trim(), StringComparison.OrdinalIgnoreCase))
             {
-                MessageBox.Show("Informe um e-mail válido.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                if (!Mascaras.ValidarEmail(email))
+                {
+                    MessageBox.Show("Informe um e-mail válido.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
             }
 
             try
@@ -206,7 +225,7 @@ namespace PDVStore.Forms
                 cliente.Nome = txtNome.Text.Trim();
                 cliente.CpfCnpj = Mascaras.FormatarCpfCnpj(txtCpfCnpj.Text);
                 cliente.Telefone = Mascaras.FormatarTelefone(txtTelefone.Text);
-                cliente.Email = txtEmail.Text.Trim();
+                cliente.Email = email;
                 cliente.Endereco = txtEndereco.Text.Trim();
                 cliente.LimiteCredito = decimal.TryParse(txtLimite.Text, out decimal limite) ? limite : 0;
 
@@ -306,6 +325,9 @@ namespace PDVStore.Forms
             txtEndereco.Clear();
             txtLimite.Text = "0";
             _clienteSelecionado = null;
+            _docOriginal = string.Empty;
+            _telefoneOriginal = string.Empty;
+            _emailOriginal = string.Empty;
             txtNome.Focus();
         }
     }
