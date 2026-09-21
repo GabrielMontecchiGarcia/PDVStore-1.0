@@ -213,4 +213,4 @@ Em **Usuários** (somente Administrador cria/edita):
 
 - A integração de pagamento (PIX/cartão) é um **mock didático**: o valor é validado e o PIX registra um `TxId`, sem conexão com adquirentes reais.
 - O log da aplicação fica em `logs/pdvstore-yyyyMMdd.log` (Serilog).
-- O `LICENSE.txt` ainda possui placeholders a serem preenchidos pelo proprietário.
+- Licença: **MIT** — consulte o arquivo `LICENSE.txt` (Copyright © 2026 Marcio de Andrade).
