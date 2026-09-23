@@ -31,8 +31,8 @@ namespace PDVStore.Forms
             ConfigurarGrid();
             CarregarUsuarios();
 
-            var btnExportarPdf = new Button { Text = "Exportar PDF", Location = new Point(691, 290), Size = new Size(125, 29), FlatStyle = FlatStyle.Flat };
-            var btnExportarExcel = new Button { Text = "Exportar Excel", Location = new Point(691, 325), Size = new Size(125, 29), FlatStyle = FlatStyle.Flat };
+            var btnExportarPdf = new Button { Text = "Exportar PDF", Location = new Point(605, 290), Size = new Size(125, 29), FlatStyle = FlatStyle.Flat };
+            var btnExportarExcel = new Button { Text = "Exportar Excel", Location = new Point(605, 325), Size = new Size(125, 29), FlatStyle = FlatStyle.Flat };
             btnExportarPdf.Click += (_, _) => ExportadorService.ExportarPdf(dgvUsuarios, "Usuários", $"Usuarios_{DateTime.Now:yyyyMMdd_HHmm}.pdf");
             btnExportarExcel.Click += (_, _) => ExportadorService.ExportarExcel(dgvUsuarios, "Usuários", $"Usuarios_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
             this.Controls.Add(btnExportarPdf);

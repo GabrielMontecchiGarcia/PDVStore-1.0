@@ -53,20 +53,22 @@
             // 
             // dgvUsuarios
             // 
+            dgvUsuarios.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             dgvUsuarios.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvUsuarios.Location = new Point(12, 65);
+            dgvUsuarios.Location = new Point(10, 49);
+            dgvUsuarios.Margin = new Padding(3, 2, 3, 2);
             dgvUsuarios.Name = "dgvUsuarios";
             dgvUsuarios.RowHeadersWidth = 51;
-            dgvUsuarios.Size = new Size(643, 380);
-            dgvUsuarios.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            dgvUsuarios.Size = new Size(563, 285);
             dgvUsuarios.TabIndex = 0;
             dgvUsuarios.CellContentClick += dgvUsuarios_CellContentClick;
             // 
             // btnNovo
             // 
-            btnNovo.Location = new Point(691, 70);
+            btnNovo.Location = new Point(605, 52);
+            btnNovo.Margin = new Padding(3, 2, 3, 2);
             btnNovo.Name = "btnNovo";
-            btnNovo.Size = new Size(125, 29);
+            btnNovo.Size = new Size(109, 22);
             btnNovo.TabIndex = 1;
             btnNovo.Text = "Novo cadastro";
             btnNovo.UseVisualStyleBackColor = true;
@@ -74,9 +76,10 @@
             // 
             // btnEditar
             // 
-            btnEditar.Location = new Point(691, 128);
+            btnEditar.Location = new Point(605, 96);
+            btnEditar.Margin = new Padding(3, 2, 3, 2);
             btnEditar.Name = "btnEditar";
-            btnEditar.Size = new Size(125, 29);
+            btnEditar.Size = new Size(109, 22);
             btnEditar.TabIndex = 2;
             btnEditar.Text = "Editar";
             btnEditar.UseVisualStyleBackColor = true;
@@ -84,9 +87,10 @@
             // 
             // btnExcluir
             // 
-            btnExcluir.Location = new Point(691, 187);
+            btnExcluir.Location = new Point(605, 140);
+            btnExcluir.Margin = new Padding(3, 2, 3, 2);
             btnExcluir.Name = "btnExcluir";
-            btnExcluir.Size = new Size(125, 29);
+            btnExcluir.Size = new Size(109, 22);
             btnExcluir.TabIndex = 3;
             btnExcluir.Text = "Excluir";
             btnExcluir.UseVisualStyleBackColor = true;
@@ -94,9 +98,10 @@
             // 
             // btnAtualizar
             // 
-            btnAtualizar.Location = new Point(691, 235);
+            btnAtualizar.Location = new Point(605, 176);
+            btnAtualizar.Margin = new Padding(3, 2, 3, 2);
             btnAtualizar.Name = "btnAtualizar";
-            btnAtualizar.Size = new Size(125, 29);
+            btnAtualizar.Size = new Size(109, 22);
             btnAtualizar.TabIndex = 4;
             btnAtualizar.Text = "Atualizar";
             btnAtualizar.UseVisualStyleBackColor = true;
@@ -105,24 +110,26 @@
             // lblPesquisar
             // 
             lblPesquisar.AutoSize = true;
-            lblPesquisar.Location = new Point(16, 15);
+            lblPesquisar.Location = new Point(14, 11);
             lblPesquisar.Name = "lblPesquisar";
-            lblPesquisar.Size = new Size(73, 20);
+            lblPesquisar.Size = new Size(60, 15);
             lblPesquisar.TabIndex = 5;
             lblPesquisar.Text = "Pesquisar:";
             // 
             // txtBusca
             // 
-            txtBusca.Location = new Point(95, 15);
+            txtBusca.Location = new Point(83, 11);
+            txtBusca.Margin = new Padding(3, 2, 3, 2);
             txtBusca.Name = "txtBusca";
-            txtBusca.Size = new Size(560, 27);
+            txtBusca.Size = new Size(490, 23);
             txtBusca.TabIndex = 6;
             // 
             // btnBuscarUsuario
             // 
-            btnBuscarUsuario.Location = new Point(691, 15);
+            btnBuscarUsuario.Location = new Point(605, 11);
+            btnBuscarUsuario.Margin = new Padding(3, 2, 3, 2);
             btnBuscarUsuario.Name = "btnBuscarUsuario";
-            btnBuscarUsuario.Size = new Size(125, 29);
+            btnBuscarUsuario.Size = new Size(109, 22);
             btnBuscarUsuario.TabIndex = 7;
             btnBuscarUsuario.Text = "Buscar";
             btnBuscarUsuario.UseVisualStyleBackColor = true;
@@ -130,9 +137,9 @@
             // 
             // frmGerenciarUsuarios
             // 
-            AutoScaleDimensions = new SizeF(8F, 20F);
+            AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(887, 500);
+            ClientSize = new Size(776, 375);
             Controls.Add(btnBuscarUsuario);
             Controls.Add(txtBusca);
             Controls.Add(lblPesquisar);
@@ -141,6 +148,10 @@
             Controls.Add(btnEditar);
             Controls.Add(btnNovo);
             Controls.Add(dgvUsuarios);
+            Margin = new Padding(3, 2, 3, 2);
+            MaximizeBox = false;
+            MaximumSize = new Size(792, 414);
+            MinimumSize = new Size(792, 414);
             Name = "frmGerenciarUsuarios";
             Text = "frmGerenciarUsuarios";
             ((System.ComponentModel.ISupportInitialize)dgvUsuarios).EndInit();
