@@ -36,7 +36,7 @@ namespace PDVStore.Forms
         public frmGerenciarProdutos(EstoqueService estoqueService)
         {
             _estoqueService = estoqueService ?? throw new ArgumentNullException(nameof(estoqueService));
-            InitializeComponent();
+            MontarInterface();
             ConfigurarGrid();
             Load += async (_, _) => await CarregarProdutosAsync();
         }
@@ -47,11 +47,14 @@ namespace PDVStore.Forms
         // POR QUE EXISTE: mantém a interface do projeto 100% pronta em tempo de execução,
         // sem depender do Designer do WinForms, facilitando o estudo do código.
         // DEPENDÊNCIAS: usa o ExportadorService (PDF/Excel) nos botões de exportação.
-        private void InitializeComponent()
+        private void MontarInterface()
         {
             Text = "Gerenciar Produtos";
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(1180, 560);
+            ClientSize = new Size(1200, 580);
+            MaximumSize = new Size(1200, 580);
+            MinimumSize = new Size(1200, 580);
+            MaximizeBox = false;
             Font = new Font("Segoe UI", 10F);
             BackColor = Color.White;
 
