@@ -1,0 +1,81 @@
+# CI (Integração Contínua) do PDVStore
+#
+# Objetivo didático: a cada push ou Pull Request voltado para as branches
+# master/main, este workflow roda automaticamente no GitHub Actions:
+#   1. instala o SDK .NET 8;
+#   2. compila o aplicativo principal (PDVStore);
+#   3. compila o instalador (PDVStore.Setup);
+#   4. verifica se o modelo (EF Core) tem mudanças sem migration pendente;
+#   5. executa a suíte de testes NUnit (PDVStore.Tests).
+#
+# O runner é `windows-latest` porque os três projetos usam
+# `net8.0-windows7.0` (WinForms) — dependem da plataforma Windows.
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+    # Alterações somente de markdown/licença não disparam a CI.
+    paths-ignore:
+      - '*.md'
+      - '**/*.md'
+      - 'LICENSE.txt'
+  pull_request:
+    branches: [master, main]
+    paths-ignore:
+      - '*.md'
+      - '**/*.md'
+      - 'LICENSE.txt'
+  # Permite disparar a pipeline manualmente pela aba "Actions".
+  workflow_dispatch:
+
+# Se abrir um novo push/PR enquanto outro ainda roda, cancela o anterior
+# para economizar execuções (a versão mais nova é a que importa).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Build e Testes (.NET 8 / Windows)
+    runs-on: windows-latest
+
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+    steps:
+      - name: Obter o código
+        uses: actions/checkout@v4
+
+      - name: Instalar o SDK .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+          # Cacheia os pacotes NuGet entre execuções para acelerar a CI.
+          cache: true
+          cache-dependency-path: '**/*.csproj'
+
+      - name: Compilar o aplicativo principal
+        run: dotnet build PDVStore.csproj --configuration Release
+
+      - name: Compilar o instalador (PDVStore.Setup)
+        run: dotnet build PDVStore.Setup/PDVStore.Setup.csproj --configuration Release
+
+      - name: Instalar a ferramenta dotnet-ef
+        run: dotnet tool install --global dotnet-ef --version 9.0.17
+
+      - name: Adicionar ferramentas Globais do .NET ao PATH
+        # Em runners Windows a pasta ~/.dotnet/tools nem sempre já está no
+        # PATH; adicionamos para o passo seguinte enxergar o comando dotnet-ef.
+        shell: pwsh
+        run: echo "$HOME/.dotnet/tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Verificar se há mudanças de modelo sem migration
+        # Garante que toda alteração no modelo (OnModelCreating) tenha uma
+        # migration correspondente. Falha a pipeline se houver pendências.
+        run: dotnet ef migrations has-pending-model-changes --project PDVStore.csproj --configuration Release --no-build
+
+      - name: Executar a suíte de testes NUnit
+        # Restaura, compila (Release) e executa os 165 testes do projeto.
+        run: dotnet test PDVStore.Tests/PDVStore.Tests.csproj --configuration Release
