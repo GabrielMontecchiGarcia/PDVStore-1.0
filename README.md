@@ -42,19 +42,26 @@ Sistema de Ponto de Venda (PDV) para pequenas lojas e comércios de bairro. Dese
 
 ### 0. Instalador guiado (PDVStore.Setup)
 
-O projeto **`PDVStore.Setup`** é um assistente WinForms que **verifica requisitos, prepara o ambiente e instala o software** passo a passo:
+O projeto **`PDVStore.Setup`** é um assistente WinForms que instala o PDVStore **do zero, de forma automática**: ele **baixa o código-fonte direto do GitHub**, instala os pré-requisitos que faltarem, recria o banco, restaura as dependências e publica o aplicativo — mostrando **todas as etapas** numa lista de progresso com log detalhado.
 
-1. **Boas-vindas** — escolha a pasta de instalação (publicação) e o nome do banco.
-2. **Verificação** — detecta se já existem: **.NET SDK 8+**, **SQL Server Express LocalDB** e a ferramenta global **dotnet-ef**.
-3. **Preparação (7 etapas)** — baixa e instala automaticamente o que estiver ausente (via **dotnet-install.ps1** oficial do .NET e do **SqlLocalDB.msi** oficial da Microsoft):
-   - ① .NET SDK 8 (`%LOCALAPPDATA%\Microsoft\dotnet`, sem admin);
-   - ② SQL Server Express LocalDB (pode pedir confirmação do UAC);
-   - ③ dotnet-ef (`dotnet tool install --global dotnet-ef --version 9.0.*`);
-   - ④ PATH do usuário (`.dotnet\tools` e pasta do SDK);
-   - ⑤ instância **MSSQLLocalDB** (cria/inicia);
-   - ⑥ `dotnet ef database update` (migrações);
-   - ⑦ `dotnet publish` do PDVStore (Release) na pasta escolhida + atalho na área de trabalho.
-4. **Conclusão** — resumo da instalação e opção de **abrir o PDVStore**.
+**Telas do assistente:**
+
+1. **Boas-vindas** — pasta de instalação (padrão **`C:\PDVStore`**, criada se não existir), nome do banco e a opção de **recriar a instância do banco do zero** (marcada por padrão; apaga todas as vendas cadastradas).
+2. **Verificação** — detecta o que já existe na máquina: **.NET SDK 8+**, **SQL Server Express LocalDB**, a ferramenta global **dotnet-ef** e, como *opcional*, o **Git**.
+3. **Preparação (10 etapas)** — executadas em ordem, cada uma com situação e detalhe na tela:
+   1. **Baixar o código-fonte do GitHub** — branch padrão detectada pela API do GitHub; baixa o ZIP do repositório (não exige Git instalado) e extrai em `C:\PDVStore\source`. Se o download falhar, usa `git clone --depth 1` como plano B;
+   2. **.NET SDK 8** — via **dotnet-install.ps1** oficial, em `%LOCALAPPDATA%\Microsoft\dotnet` (sem admin);
+   3. **SQL Server Express LocalDB** — baixa o **SqlLocalDB.msi** oficial (pode pedir confirmação do UAC);
+   4. **dotnet-ef** — `dotnet tool install --global dotnet-ef --version 9.0.*`;
+   5. **PATH do usuário** — acrescenta `.dotnet\tools` e a pasta do SDK em `HKCU\Environment` (sem elevação);
+   6. **Instância do banco** — `stop` → `delete` → `create` → `start` na **MSSQLLocalDB**. Com a recriação marcada, a instância existente é apagada e recriada; o PDVStore aberto é fechado automaticamente para liberar o banco;
+   7. **Nome do banco** — reescreve `Helpers/ConnectionHelper.cs` no código baixado para usar o banco escolhido (o app fixa `PDV_StoreDB` em uma string literal, sem isso o campo da tela não teria efeito);
+   8. **Restaurar dependências** — `dotnet restore` (baixa os pacotes NuGet);
+   9. **Migrações** — `dotnet ef database update`. Tolerante: se falhar, o próprio aplicativo migra no primeiro acesso;
+   10. **Publicar** — `dotnet publish -c Release` na pasta escolhida + atalho **PDV Store** na área de trabalho. Falha aqui **aborta** a instalação, já que o código acabou de ser baixado e não há build anterior para o usuário recorrer.
+4. **Conclusão** — resumo com destino, origem do código, banco, situação de cada etapa e opção de **abrir o PDVStore**.
+
+> **Sobre a etapa ⑥:** `SqlLocalDB.exe` devolve código de saída 0 mesmo quando o comando falha, então o instalador não confia no `ExitCode`: ele relê `sqllocaldb info` depois de cada comando e compara o nome da instância linha a linha.
 
 Para executar (dentro da pasta do repo):
 
@@ -63,7 +70,7 @@ dotnet build PDVStore.Setup\PDVStore.Setup.csproj
 dotnet run --project PDVStore.Setup\PDVStore.Setup.csproj
 ```
 
-Caso o projeto PDVStore não seja localizado (ex.: instalador copiado sozinho), as etapas ⑥ e ⑦ são puladas com aviso — o banco é migrado automaticamente pelo próprio aplicativo na primeira execução.
+> A etapa ⑩ publica o código **diretamente do GitHub**. Se o `master` estiver com erro de compilação, a instalação para na etapa ⑩ e o log mostra os erros do MSBuild.
 
 ### 1. Restaurar os pacotes
 
