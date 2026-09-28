@@ -41,6 +41,9 @@ namespace PDVStore.Forms
             Text = "Abertura / Fechamento de Caixa";
             StartPosition = FormStartPosition.CenterScreen;
             ClientSize = new Size(820, 560);
+            MaximumSize = new Size(820, 560);
+            MinimumSize = new Size(820, 560);
+            MaximizeBox = false;
             Font = new Font("Segoe UI", 10F);
             BackColor = Color.White;
 
@@ -188,6 +191,11 @@ namespace PDVStore.Forms
             {
                 MessageBox.Show("Não foi possível registrar a sangria.", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void InitializeComponent()
+        {
+
         }
 
         // O que faz: encerra o caixa aberto após confirmação do usuário.

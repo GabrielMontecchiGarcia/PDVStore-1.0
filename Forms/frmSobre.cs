@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using PDVStore.Helpers;
 
 namespace PDVStore.Forms
 {
@@ -21,6 +22,7 @@ namespace PDVStore.Forms
         public frmSobre()
         {
             InitializeComponent();
+            Tema.Aplicar(this);
             this.Text = String.Format("About {0}", AssemblyTitle);
             this.labelProductName.Text = AssemblyProduct;
             this.labelVersion.Text = String.Format("Version {0}", AssemblyVersion);

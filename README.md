@@ -1,5 +1,7 @@
 # PDVStore
 
+![CI](https://github.com/marciodeandrade1/PDVStore-1.0/actions/workflows/ci.yml/badge.svg)
+
 Sistema de Ponto de Venda (PDV) para pequenas lojas e comércios de bairro. Desenvolvido em **C# / .NET 8** com **WinForms**, **Entity Framework Core** e banco **SQL Server LocalDB**.
 
 ## Funcionalidades
@@ -193,6 +195,70 @@ Em **Usuários** (somente Administrador cria/edita):
 - **Estoquista**: acesso apenas ao cadastro de produtos.
 - **Administrador**: acesso total (todas as telas, incluindo usuários).
 - Cadastro de novo usuário exige nome, senha (mín. 6 caracteres), confirmação e **papel**. Foto opcional.
+
+---
+
+## CI — Integração Contínua (GitHub Actions)
+
+A **Integração Contínua** (CI) valida automaticamente o código **sempre que alguém fizer uma alteração**, avisando cedo se quebrar build ou testes. A ferramenta nativa usada é o **GitHub Actions**, declarada no arquivo `.github/workflows/ci.yml`.
+
+O status da última execução aparece no **badge** no topo deste README: ✔ verde (sucesso), ❌ vermelho (falha), ● amarelo (em execução).
+
+### O que a CI verifica a cada execução
+
+| # | Etapa | Comando | Por quê |
+|---|-------|---------|---------|
+| 1 | Instala o SDK .NET 8 | `actions/setup-dotnet` | Garante a mesma versão do .NET para todos os colaboradores |
+| 2 | Compila o aplicativo principal | `dotnet build PDVStore.csproj --configuration Release` | Detecta erros de compilação/incompatibilidades |
+| 3 | Compila o instalador | `dotnet build PDVStore.Setup/PDVStore.Setup.csproj --configuration Release` | O instalador não pode ficar quebrado |
+| 4 | Verifica migrações pendentes | `dotnet ef migrations has-pending-model-changes` | Toda mudança no modelo (banco) precisa ter migration |
+| 5 | Executa os testes | `dotnet test PDVStore.Tests/PDVStore.Tests.csproj --configuration Release` | Roda os 165 testes NUnit do projeto |
+
+> A CI roda no runner **Windows** (`windows-latest`) porque os projetos usam WinForms (`net8.0-windows7.0`).
+
+### Quando a CI é disparada
+
+- **Push** para as branches `master` ou `main`;
+- **Pull Request** aberto/atualizado voltado para `master` ou `main`;
+- **Manualmente** (botão *Run workflow*, ver abaixo).
+- Alterações **somente** de arquivos `.md` ou do `LICENSE.txt` **não** disparam a CI.
+
+### Como acompanhar uma execução (passo a passo)
+
+1. Acesse o repositório e clique na aba **Actions** (no topo da página).
+2. No menu lateral esquerdo, selecione o workflow **CI** para ver o histórico de execuções.
+3. Clique na execução mais recente (o push/PR que você ou um colega fez).
+4. Você verá o job **"Build e Testes (.NET 8 / Windows)"** — clique nele.
+5. Um detalhamento com as 5 etapas da tabela acima é exibido; clique em qualquer etapa para abrir os **logs** completos (console colorido).
+6. Resultado da execução:
+   - ✔ **Verde** — tudo passou;
+   - ❌ **Vermelho** — alguma etapa falhou (clique na etapa vermelha para ver o erro);
+   - ● **Amarelo/círculo** — ainda em execução.
+
+### Rodar a CI manualmente
+
+1. Aba **Actions** → workflow **CI** → botão **"Run workflow"** (lado direito).
+2. Selecione a branch (ex.: `master`) → **Run workflow**.
+3. Acompanhe a nova execução conforme os passos acima.
+
+### Reexecutar uma execução com falha
+
+Em qualquer execução, clique em **"Re-run jobs"** (ou *Re-run all jobs*) no canto superior direito — útil quando a falha é temporária (ex.: instalação de dependência).
+
+### Boas práticas para colaboradores
+
+Antes de abrir um PR ou dar push, rode **localmente as mesmas etapas** para não depender só da CI:
+
+```bash
+dotnet build PDVStore.csproj --configuration Release
+dotnet build PDVStore.Setup/PDVStore.Setup.csproj --configuration Release
+dotnet test PDVStore.Tests/PDVStore.Tests.csproj --configuration Release
+dotnet ef migrations has-pending-model-changes --project PDVStore.csproj
+```
+
+- Se você **alterar o modelo** (entidades/`OnModelCreating`) e esquecer a migration, a etapa 4 falha — crie uma com `dotnet ef migrations add <Nome>`.
+- Se um **teste falhar**, abra os logs na etapa 5, leia o cenário e a regra de negócio descrita nos comentários do teste, e corrija antes do merge.
+- PRs de **forks** também passam pela CI automaticamente na aba *Checks* do próprio PR.
 
 ---
 

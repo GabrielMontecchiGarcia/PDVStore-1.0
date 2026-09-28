@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using PDVStore.Helpers;
 
 namespace PDVStore.Forms
 {
@@ -22,6 +23,7 @@ namespace PDVStore.Forms
         {
             _estoqueService = estoqueService ?? throw new ArgumentNullException(nameof(estoqueService));
             InitializeComponent();
+            Tema.Aplicar(this);
             ConfigurarFormulario();
         }
 
@@ -66,6 +68,9 @@ namespace PDVStore.Forms
         {
             this.Text = "Gestão de Estoque - Entrada / Saída";
             this.StartPosition = FormStartPosition.CenterScreen;
+            MaximumSize = new Size(750, 400);
+            MinimumSize = new Size(750, 400);
+            MaximizeBox = false;
 
             Load += Form_Load;
 
@@ -89,6 +94,8 @@ namespace PDVStore.Forms
 
             var btnExportarPdf = new Button { Text = "Exportar PDF", Location = new Point(542, 9), Size = new Size(110, 29), FlatStyle = FlatStyle.Flat };
             var btnExportarExcel = new Button { Text = "Exportar Excel", Location = new Point(542, 39), Size = new Size(110, 29), FlatStyle = FlatStyle.Flat };
+            var btnExportarPdf = new Button { Text = "Exportar PDF", Location = new Point(587, 90), Size = new Size(110, 29), FlatStyle = FlatStyle.Flat };
+            var btnExportarExcel = new Button { Text = "Exportar Excel", Location = new Point(587, 125), Size = new Size(110, 29), FlatStyle = FlatStyle.Flat };
             btnExportarPdf.Click += (_, _) => ExportadorService.ExportarPdf(dgvProdutos, "Gestão de Estoque", $"Estoque_{DateTime.Now:yyyyMMdd_HHmm}.pdf");
             btnExportarExcel.Click += (_, _) => ExportadorService.ExportarExcel(dgvProdutos, "Gestão de Estoque", $"Estoque_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
             this.Controls.Add(btnExportarPdf);

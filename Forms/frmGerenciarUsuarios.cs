@@ -7,6 +7,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using PDVStore.Helpers;
 
 namespace PDVStore.Forms
 {
@@ -25,6 +26,7 @@ namespace PDVStore.Forms
         public frmGerenciarUsuarios(PDVContext context, IServiceProvider serviceProvider)
         {
             InitializeComponent();
+            Tema.Aplicar(this);
             _context = context;
             _serviceProvider = serviceProvider;
 
@@ -41,7 +43,7 @@ namespace PDVStore.Forms
             txtBusca.TextChanged += TxtBusca_TextChanged;
         }
 
-        // Configura as colunas do DataGridView de usuários, incluindo a coluna de foto.
+        // Configura as colunas do DataGridView de usuários, incluindo a coluna de foto. 
         // O QUE FAZ: desliga a geração automática de colunas, define altura da linha e
         // cria colunas para Id, Nome, Permissão, Status e Foto (com imagem default).
         // POR QUE EXISTE: a grade é apenas leitura e reflete o modelo Usuario; a coluna

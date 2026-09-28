@@ -148,6 +148,7 @@
             Controls.Add(btnEditar);
             Controls.Add(btnNovo);
             Controls.Add(dgvUsuarios);
+            FormBorderStyle = FormBorderStyle.FixedSingle;
             Margin = new Padding(3, 2, 3, 2);
             MaximizeBox = false;
             MaximumSize = new Size(792, 414);

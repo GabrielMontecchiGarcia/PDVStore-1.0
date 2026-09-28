@@ -3,6 +3,7 @@ using PDVStore.Models;
 using PDVStore.Services;
 using System;
 using System.Windows.Forms;
+using PDVStore.Helpers;
 
 namespace PDVStore.Forms
 {
@@ -21,6 +22,7 @@ namespace PDVStore.Forms
         public frmLogin(IServiceProvider serviceProvider, UsuarioService usuarioService)
         {
             InitializeComponent();
+            Tema.Aplicar(this);
             _serviceProvider = serviceProvider;
             _usuarioService = usuarioService;
         }

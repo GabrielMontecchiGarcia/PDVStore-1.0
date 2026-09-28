@@ -181,6 +181,8 @@
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(534, 207);
+            FormBorderStyle = FormBorderStyle.FixedSingle;
+            MaximizeBox = false;
             Controls.Add(cboPermissao);
             Controls.Add(lblPermissao);
             Controls.Add(btnCancelar);

@@ -5,6 +5,7 @@ using System;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
+using PDVStore.Helpers;
 
 namespace PDVStore.Forms
 {
@@ -30,6 +31,7 @@ namespace PDVStore.Forms
         public frmCadastroUsuario(PDVContext context)
         {
             InitializeComponent();
+            Tema.Aplicar(this);
             _context = context;
             this.Text = "Cadastrar Novo Usuário";
             CarregarImagemPadrao();
@@ -46,6 +48,7 @@ namespace PDVStore.Forms
         public frmCadastroUsuario(PDVContext context, UsuarioCaixa usuario)
         {
             InitializeComponent();
+            Tema.Aplicar(this);
             _context = context;
             _usuarioEmEdicao = usuario;
             this.Text = $"Editar Usuário - {usuario.Nome}";

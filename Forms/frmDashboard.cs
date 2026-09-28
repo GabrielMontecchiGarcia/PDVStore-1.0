@@ -1,4 +1,4 @@
-using PDVStore.Helpers;
+﻿using PDVStore.Helpers;
 using PDVStore.Services;
 using PDVStore.ViewModels;
 using System;
@@ -35,6 +35,7 @@ namespace PDVStore.Forms
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             _relatorioService = relatorioService ?? throw new ArgumentNullException(nameof(relatorioService));
             BuildUI();
+            Tema.Aplicar(this);
             Load += async (_, _) => await CarregarAsync();
         }
 
@@ -48,6 +49,8 @@ namespace PDVStore.Forms
             Text = "Dashboard & Relatórios";
             StartPosition = FormStartPosition.CenterScreen;
             Size = new Size(1350, 900);
+            FormBorderStyle = FormBorderStyle.FixedSingle;
+            MaximizeBox = false;
             Font = new Font("Segoe UI", 10F);
             BackColor = Color.White;
 

@@ -64,6 +64,7 @@
             dgvProdutos.Name = "dgvProdutos";
             dgvProdutos.RowHeadersWidth = 51;
             dgvProdutos.Size = new Size(630, 200);
+            dgvProdutos.Size = new Size(630, 214);
             dgvProdutos.TabIndex = 0;
             dgvProdutos.SelectionChanged += dgvProdutos_SelectionChanged;
             // 
@@ -116,6 +117,7 @@
             // txtQuantidade
             // 
             txtQuantidade.Location = new Point(124, 44);
+            txtQuantidade.Location = new Point(122, 36);
             txtQuantidade.Margin = new Padding(3, 2, 3, 2);
             txtQuantidade.Name = "txtQuantidade";
             txtQuantidade.Size = new Size(110, 23);
@@ -144,6 +146,10 @@
             btnBuscar.Margin = new Padding(3, 2, 3, 2);
             btnBuscar.Name = "btnBuscar";
             btnBuscar.Size = new Size(102, 23);
+            btnBuscar.Location = new Point(407, 128);
+            btnBuscar.Margin = new Padding(3, 2, 3, 2);
+            btnBuscar.Name = "btnBuscar";
+            btnBuscar.Size = new Size(101, 22);
             btnBuscar.TabIndex = 7;
             btnBuscar.Text = "Buscar";
             btnBuscar.UseVisualStyleBackColor = true;
@@ -155,6 +161,10 @@
             btnConfirmarMovimento.Margin = new Padding(3, 2, 3, 2);
             btnConfirmarMovimento.Name = "btnConfirmarMovimento";
             btnConfirmarMovimento.Size = new Size(102, 30);
+            btnConfirmarMovimento.Location = new Point(407, 102);
+            btnConfirmarMovimento.Margin = new Padding(3, 2, 3, 2);
+            btnConfirmarMovimento.Name = "btnConfirmarMovimento";
+            btnConfirmarMovimento.Size = new Size(102, 22);
             btnConfirmarMovimento.TabIndex = 8;
             btnConfirmarMovimento.Text = "Confirmar";
             btnConfirmarMovimento.UseVisualStyleBackColor = true;
@@ -164,6 +174,7 @@
             // 
             lblProdutoSelecionado.AutoSize = true;
             lblProdutoSelecionado.Location = new Point(14, 370);
+            lblProdutoSelecionado.Location = new Point(14, 386);
             lblProdutoSelecionado.Name = "lblProdutoSelecionado";
             lblProdutoSelecionado.Size = new Size(71, 15);
             lblProdutoSelecionado.TabIndex = 9;
@@ -190,6 +201,9 @@
             MaximizeBox = false;
             MaximumSize = new Size(698, 449);
             MinimumSize = new Size(698, 449);
+            FormBorderStyle = FormBorderStyle.FixedSingle;
+            Margin = new Padding(3, 2, 3, 2);
+            MaximizeBox = false;
             Name = "frmEstoque";
             Text = "frmEstoque";
             ((System.ComponentModel.ISupportInitialize)dgvProdutos).EndInit();

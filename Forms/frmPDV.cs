@@ -9,6 +9,7 @@ using System.Drawing.Printing;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using PDVStore.Helpers;
 
 namespace PDVStore.Forms
 {
@@ -57,6 +58,7 @@ namespace PDVStore.Forms
             _clienteService = clienteService ?? throw new ArgumentNullException(nameof(clienteService));
 
             BuildUI();
+            Tema.Aplicar(this);
             Load += OnLoad;
         }
 
@@ -107,8 +109,12 @@ namespace PDVStore.Forms
             Text = "PDV - Ponto de Venda";
             StartPosition = FormStartPosition.CenterScreen;
             WindowState = FormWindowState.Maximized;
+            FormBorderStyle = FormBorderStyle.FixedSingle;
+            MaximizeBox = false;
             Font = new Font("Segoe UI", 10F);
             BackColor = Color.White;
+            MaximizeBox = false;
+            MinimizeBox = false;
 
             lblUsuarioLogado = new Label { Text = "Operador: -", AutoSize = true, Font = new Font("Segoe UI", 11F, FontStyle.Bold), Location = new Point(20, 10) };
             Controls.Add(lblUsuarioLogado);
