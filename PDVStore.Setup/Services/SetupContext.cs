@@ -44,7 +44,6 @@ public sealed class SetupContext
     // ---- Código-fonte ----
     public string Branch { get; set; } = InstaladorInfo.BranchPadrao;
     public string PastaFonte { get; set; } = "";
-    public string PastaClone => DirFonte + "-git";
 
     public string? CaminhoProjeto { get; set; }
     public string? CaminhoExeApp { get; set; }
