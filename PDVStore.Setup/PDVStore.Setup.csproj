@@ -10,4 +10,11 @@
     <RootNamespace>PDVStore.Setup</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Usado só pela etapa que cria o banco com FILENAME explícito, para gravar os arquivos
+         .mdf/.ldf dentro da pasta de instalação. O SqlClient já vem com o aplicativo, então não
+         baixa nada novo para o usuário final. -->
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.6" />
+  </ItemGroup>
+
 </Project>

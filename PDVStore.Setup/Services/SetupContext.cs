@@ -64,6 +64,17 @@ public sealed class SetupContext
     // Executável publicado dentro do diretório de instalação.
     public string CaminhoExe => Path.Combine(DirInstalacao, "PDVStore.exe");
 
+    // Pasta onde ficam os arquivos do banco (.mdf/.ldf), junto do executável.
+    //
+    // POR QUE não é o padrão: o LocalDB cria bancos de usuário no PERFIL do Windows
+    // (C:\Users\<usuário>\<banco>.mdf), espalhando os dados fora da instalação. A etapa 9 cria o
+    // banco com FILENAME explícito para que os arquivos nasçam aqui, dentro de C:\PDVStore.
+    public string PastaBanco { get; set; } = "";
+
+    // Resolve a pasta do banco, com a instalação como padrão.
+    public string PastaBancoEfetiva
+        => string.IsNullOrWhiteSpace(PastaBanco) ? DirInstalacao : PastaBanco;
+
     public string ConnectionString
         => InstaladorInfo.ConexaoPadrao(NomeBanco);
 

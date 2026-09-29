@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Data.SqlClient;
+using Microsoft.Win32;
 
 namespace PDVStore.Setup.Services;
 
@@ -148,6 +150,12 @@ public static class PreparadorAmbiente
 
             // ---- 9. Migrações ----
             Iniciar(9, "Criando o banco e as tabelas...");
+
+            // O LocalDB cria bancos de usuário no PERFIL do Windows (%USERPROFILE%), o que
+            // espalha os arquivos .mdf fora da pasta de instalação. Criar o banco antes, com
+            // FILENAME explícito, é o que faz os arquivos nascerem em <instalação>\.
+            await CriarBancoNaPastaDeInstalacaoAsync(ctx, onLog, ct);
+
             var avisoMigracoes = await AplicarMigracoesAsync(ctx, onLog, ct);
             if (string.IsNullOrEmpty(avisoMigracoes))
                 Concluir("Banco migrado: " + ctx.NomeBanco);
@@ -300,11 +308,10 @@ public static class PreparadorAmbiente
     // A recriação é feita nesta ordem: parar -> excluir -> criar -> iniciar. Sem a parada antes
     // da exclusão, o LocalDB recusa o 'delete' da instância que estiver em uso.
     //
-    // IMPORTANTE: SqlLocalDB.exe devolve o código de saída 0 mesmo quando o comando falha
-    // ("The specified LocalDB instance does not exist." também sai com 0). Por isso nenhuma
-    // checagem aqui usa ExitCode: o sucesso é confirmado por InstanciaExisteAsync, que consulta
-    // 'sqllocaldb info <nome>' depois de cada comando, e por FalhouNoLocalDb, que procura a
-    // mensagem de erro no texto.
+    // IMPORTANTE: SqlLocalDB.exe devolve o código de saída 0 mesmo quando o comando falha, e a
+    // SAÍDA DE TEXTO É TRADUZIDA conforme o idioma do Windows. Nenhum dos dois serve para dizer
+    // se a operação deu certo. Todo o sucesso aqui é confirmado POSITIVAMENTE pelo registro
+    // (ConsultarInstancia / MotorRodando), a única fonte que não muda com o idioma.
     private static async Task RecriarInstanciaLocalDbAsync(SetupContext ctx, Action<string> onLog, CancellationToken ct)
     {
         var exe = ctx.CaminhoSqlLocalDb;
@@ -312,7 +319,7 @@ public static class PreparadorAmbiente
             throw new Exception("SqlLocalDB.exe não localizado; o LocalDB precisa estar instalado.");
 
         var nome = InstaladorInfo.InstanciaLocalDb;
-        ctx.InstanciaExiste = await InstanciaExisteAsync(exe, nome, ct);
+        ctx.InstanciaExiste = InstanciaExiste(nome);
 
         if (ctx.InstanciaExiste && ctx.RecriarBanco)
         {
@@ -320,28 +327,25 @@ public static class PreparadorAmbiente
 
             await EncerrarAplicativoEmExecucao(onLog);
 
-            // Parar antes de excluir é obrigatório. A falha aqui NÃO é ignorada em silêncio
-            // como antes: ela significa, na maioria das vezes, que ainda existe conexão aberta
-            // (o app aberto, SSMS ou um pool que não fechou), e é exatamente esse caso que
-            // quebra o 'delete'/'create' logo em seguida.
-            var parar = await ProcessUtil.RunAsync(exe, new[] { "stop", nome }, onLine: s => onLog("     " + s), ct: ct);
-            if (FalhouNoLocalDb(parar))
-                onLog("     o 'stop' relatou falha; pode ser conexão ainda aberta. Seguindo mesmo assim.");
+            // Parar antes de excluir é obrigatório. Falha aqui costuma significar conexão ainda
+            // aberta (app, SSMS ou pool que não fechou), que é justamente o caso que quebra o
+            // 'delete'/'create' logo em seguida.
+            await ProcessUtil.RunAsync(exe, new[] { "stop", nome }, onLine: s => onLog("     " + s), ct: ct);
+            if (MotorRodando(nome))
+                onLog("     o 'stop' deixou o motor no ar; pode haver conexão aberta. Seguindo mesmo assim.");
 
             // O 'stop' responde antes de o motor realmente encerrar: o sqlservr.exe da instância
             // só libera a pasta dela alguns segundos depois. Sem esta espera o 'create' seguinte
             // roda com a pasta ainda em uso e falha.
-            await AguardarMotorDaInstanciaSairAsync(exe, nome, onLog, ct);
+            await AguardarMotorDaInstanciaSairAsync(nome, onLog, ct);
 
             var excluir = await ProcessUtil.RunAsync(exe, new[] { "delete", nome }, onLine: s => onLog("     " + s), ct: ct);
-            if (FalhouNoLocalDb(excluir))
-                throw new Exception("Não foi possível excluir a instância LocalDB: " + Resumir(excluir.Output));
 
-            // Confirma pelo estado real, e não pelo código de saída.
-            if (await InstanciaExisteAsync(exe, nome, ct))
+            // Confirma pelo estado real: registro sem a instância, e não pelo texto do comando.
+            if (InstanciaExiste(nome))
                 throw new Exception(
-                    $"O comando delete foi executado, mas a instância \"{nome}\" continua registrada. " +
-                    "Verifique se ela está em uso por outro aplicativo.");
+                    "O comando delete foi executado, mas a instância \"" + nome + "\" continua registrada. " +
+                    "Verifique se ela está em uso por outro aplicativo. Resposta do SqlLocalDB: " + Resumir(excluir.Output));
 
             ctx.InstanciaExiste = false;
             onLog($"  Instância \"{nome}\" excluída.");
@@ -349,7 +353,7 @@ public static class PreparadorAmbiente
             // A exclusão da instância não leva junto os arquivos do banco; precisam sair antes
             // de a etapa 9 tentar o CREATE DATABASE. Eles só podem ser apagados com o motor
             // antigo encerrado, por isso a remoção só agora e com uma segunda tentativa.
-            await RemoverArquivosBancoOrfaosAsync(ctx.NomeBanco, onLog, ct);
+            await RemoverArquivosBancoOrfaosAsync(ctx, onLog, ct);
         }
         else if (ctx.InstanciaExiste)
         {
@@ -366,31 +370,22 @@ public static class PreparadorAmbiente
         await IniciarInstanciaAsync(exe, nome, onLog, ct);
     }
 
-    // Estado real da instância, lido do campo "State:" de 'sqllocaldb info <nome>'.
-    // Retorna "" quando a instância não existe (não há bloco de informações).
-    private static async Task<string> ConsultarEstadoAsync(string exe, string nome, CancellationToken ct)
-    {
-        var r = await ProcessUtil.RunAsync(exe, new[] { "info", nome }, ct: ct);
-        foreach (var linha in r.Output.Split('\n'))
-        {
-            var t = linha.Trim();
-            if (t.StartsWith("State:", StringComparison.OrdinalIgnoreCase))
-                return t["State:".Length..].Trim();
-        }
-        return "";
-    }
-
     // O 'sqllocaldb stop' é assíncrono: ele responde assim que o pedido é aceito, mas o
     // sqlservr.exe da instância continua vivo por alguns segundos segurando a pasta dela. Como
     // o 'create' seguinte precisa criar o master.mdf exatamente nessa pasta, a corrida faz a
-    // etapa 6 falhar de forma intermitente. Aqui a espera é pelo estado, não por tempo fixo.
-    private static async Task AguardarMotorDaInstanciaSairAsync(string exe, string nome, Action<string> onLog, CancellationToken ct)
+    // etapa 6 falhar de forma intermitente.
+    //
+    // A espera é pelo PID que o registro informa, e não por tempo fixo nem por texto traduzido.
+    private static async Task AguardarMotorDaInstanciaSairAsync(string nome, Action<string> onLog, CancellationToken ct)
     {
         for (int i = 1; i <= 20; i++)
         {
             ct.ThrowIfCancellationRequested();
-            if (!string.Equals(await ConsultarEstadoAsync(exe, nome, ct), "Running", StringComparison.OrdinalIgnoreCase))
+
+            var (_, _, pid) = ConsultarInstancia(nome);
+            if (!ProcessoVivo(pid))
                 return;
+
             await Task.Delay(1000, ct);
         }
 
@@ -427,37 +422,124 @@ public static class PreparadorAmbiente
         }
     }
 
-    // Cria a instância com retentativas. O LocalDB é notoriously frágil logo após um
-    // 'delete': a pasta da instância pode ainda estar sendo liberada e o 'create' falha sem
-    // deixar rastro. Entre as tentativas o motor é finalizado, porque quase sempre é ele que
-    // segura o arquivo.
+    // Pasta onde o LocalDB guarda os arquivos de uma instância. O caminho é do SqlLocalDB e NÃO
+    // segue o formato "%LOCALAPPDATA%\Microsoft\SqlServer\LocalDB" (esse não existe); o real é
+    // "%LOCALAPPDATA%\Microsoft\Microsoft SQL Server Local DB\Instances\<nome>".
+    //
+    // O nome dessa pasta depende do idioma do Windows, então ela só é usada como CHUTE, e apenas
+    // quando o registro não tem o caminho real (que é o caso da instância órfã, já sem registro).
+    private static string PastaInstanciaLocalDb(string nome)
+    {
+        var (_, pasta, _) = ConsultarInstancia(nome);
+        if (!string.IsNullOrEmpty(pasta))
+            return pasta;
+
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Microsoft", "Microsoft SQL Server Local DB", "Instances", nome);
+    }
+
+    // Desloca a pasta de uma instância que NÃO está registrada.
+    //
+    // POR QUE: o 'sqllocaldb delete' remove o registro mas deixa a pasta, e uma instalação
+    // interrompida deixa a pasta sem registro nenhum. Nesse estado o 'create' falha, porque
+    // tenta criar a pasta por cima de uma que já existe com arquivos do motor pela metade. A
+    // pasta é RENOMEADA, não apagada: destrói-se o menos possível para desbloquear a instalação.
+    private static void AfastarPastaInstanciaOrfa(string nome, Action<string> onLog)
+    {
+        var pasta = PastaInstanciaLocalDb(nome);
+        if (!Directory.Exists(pasta))
+            return;
+
+        var destino = pasta + ".antigo-" + DateTime.Now.ToString("yyyyMMddHHmmss");
+        try
+        {
+            Directory.Move(pasta, destino);
+            onLog("     pasta de instância órfã afastada (instância não estava registrada):");
+            onLog("       " + pasta);
+            onLog("       -> " + destino);
+        }
+        catch
+        {
+            // Pastas presas por um motor que não shutou: encerra o motor e tenta de novo.
+            EncerrarMotoresLocalDb(onLog);
+            try
+            {
+                Directory.Move(pasta, destino);
+                onLog("     pasta de instância órfã afastada após encerrar o motor: " + destino);
+            }
+            catch (Exception ex)
+            {
+                onLog("     AVISO: não foi possível afastar a pasta de instância órfã (" + ex.Message + ").");
+                onLog("       " + pasta);
+            }
+        }
+    }
+
+    // Deixa a instância pronta para uso.
+    //
+    // POR QUE não basta um 'create': "MSSQLLocalDB" é a instância AUTOMÁTICA e o LocalDB já a
+    // cria sozinho no primeiro 'start'. Insistir no 'create' é o que quebrava em máquinas
+    // diferentes da de desenvolvimento — onde o create funciona — e o sintoma é exatamente o
+    // erro reportado. A ordem agora é: afastar pasta órfã -> 'create' ->, se falhar e a
+    // instância for a automática, 'start', que a cria sob demanda.
     private static async Task CriarInstanciaAsync(string exe, string nome, Action<string> onLog, CancellationToken ct)
     {
-        const int tentativas = 4;
+        const int tentativas = 3;
+        var automatica = string.Equals(nome, "MSSQLLocalDB", StringComparison.OrdinalIgnoreCase);
+
+        if (automatica)
+            onLog("     instância automática: o LocalDB a cria sozinho no primeiro 'start'.");
+
+        if (!InstanciaExiste(nome))
+            AfastarPastaInstanciaOrfa(nome, onLog);
 
         for (int t = 1; t <= tentativas; t++)
         {
             var r = await ProcessUtil.RunAsync(exe, new[] { "create", nome }, onLine: s => onLog("     " + s), ct: ct);
 
-            if (!FalhouNoLocalDb(r) && await InstanciaExisteAsync(exe, nome, ct))
+            // Sucesso = a instância passou a existir. A resposta do comando só vai para o log,
+            // porque em Windows em português ela vem traduzida e não serve para decidir nada.
+            if (InstanciaExiste(nome))
                 return;
 
-            if (t == tentativas)
+            if (t < tentativas)
+            {
+                var espera = t * 2000;
+                onLog($"     o 'create' não registrou a instância; o motor antigo pode ainda estar segurando os arquivos. Nova tentativa em {espera / 1000}s.");
+                EncerrarMotoresLocalDb(onLog);
+                await Task.Delay(espera, ct);
+                continue;
+            }
+
+            if (!automatica)
                 throw new Exception(
                     $"Não foi possível criar a instância LocalDB \"{nome}\" mesmo após {tentativas} tentativas. " +
-                    "Última resposta do SqlLocalDB: " + Resumir(r.Output) + DiagnosticoLocalDb(nome));
+                    "Resposta do SqlLocalDB: " + Resumir(r.Output) + DiagnosticoLocalDb(nome) + DiagnosticoAmbiente(nome));
 
-            var espera = t * 2000;
-            onLog($"     a criação falhou; o motor antigo pode ainda estar segurando os arquivos. Nova tentativa em {espera / 1000}s.");
-            EncerrarMotoresLocalDb(onLog);
-            await Task.Delay(espera, ct);
+            // Última via para a instância automática: 'start' sem 'create'. O LocalDB cria a
+            // instância sob demanda e é o caminho que todo mundo usa no dia a dia.
+            onLog("     'create' não funcionou; tentando iniciar a instância automática direto, sem criar antes.");
+            var s = await ProcessUtil.RunAsync(exe, new[] { "start", nome }, onLine: x => onLog("     " + x), ct: ct);
+
+            if (InstanciaExiste(nome))
+            {
+                onLog("     instância automática criada e iniciada pelo 'start'.");
+                return;
+            }
+
+            throw new Exception(
+                $"Não foi possível criar a instância LocalDB \"{nome}\" mesmo após {tentativas} tentativas de 'create' " +
+                "e uma tentativa de 'start' direto. " +
+                "Resposta do 'create': " + Resumir(r.Output) +
+                " | Resposta do 'start': " + Resumir(s.Output) + DiagnosticoLocalDb(nome) + DiagnosticoAmbiente(nome));
         }
     }
 
     // Inicia a instância e confere o estado de verdade. O 'sqllocaldb start' pode responder que
     // iniciou e o motor morrer logo em seguida (memória, arquivo preso, permissão); confiar só
     // no texto deixava a falha aparecer depois, na etapa 9, com uma mensagem que não aponta
-    // a causa.
+    // a causa. Aqui a conferência é pelo PID do motor registrado.
     private static async Task IniciarInstanciaAsync(string exe, string nome, Action<string> onLog, CancellationToken ct)
     {
         const int tentativas = 3;
@@ -465,18 +547,17 @@ public static class PreparadorAmbiente
         for (int t = 1; t <= tentativas; t++)
         {
             var r = await ProcessUtil.RunAsync(exe, new[] { "start", nome }, onLine: s => onLog("     " + s), ct: ct);
-            var estado = await ConsultarEstadoAsync(exe, nome, ct);
 
-            if (!FalhouNoLocalDb(r) && string.Equals(estado, "Running", StringComparison.OrdinalIgnoreCase))
+            if (MotorRodando(nome))
                 return;
 
             if (t == tentativas)
                 throw new Exception(
-                    $"Não foi possível iniciar a instância LocalDB \"{nome}\". Estado informado: \"{estado}\". " +
-                    "Resposta do SqlLocalDB: " + Resumir(r.Output) + DiagnosticoLocalDb(nome));
+                    $"Não foi possível iniciar a instância LocalDB \"{nome}\": o motor não ficou no ar. " +
+                    "Resposta do SqlLocalDB: " + Resumir(r.Output) + DiagnosticoLocalDb(nome) + DiagnosticoAmbiente(nome));
 
             var espera = t * 3000;
-            onLog($"     a instância não ficou em execução (estado: \"{estado}\"); nova tentativa em {espera / 1000}s.");
+            onLog($"     a instância não ficou em execução; nova tentativa em {espera / 1000}s.");
             await Task.Delay(espera, ct);
         }
     }
@@ -486,10 +567,7 @@ public static class PreparadorAmbiente
     // que caçar o motivo na máquina depois.
     private static string DiagnosticoLocalDb(string nome)
     {
-        var log = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Microsoft", "Microsoft SQL Server Local DB", "Instances", nome, "error.log");
-
+        var log = Path.Combine(PastaInstanciaLocalDb(nome), "error.log");
         if (!File.Exists(log))
             return "";
 
@@ -514,55 +592,152 @@ public static class PreparadorAmbiente
         }
     }
 
-    // Verifica se a instância existe consultando 'sqllocaldb info <nome>', que é a única
-    // forma confiável. POR QUE não usar 'sqllocaldb info' sem argumento: esse comando lista
-    // SEMPRE a instância automática "MSSQLLocalDB", mesmo quando ela ainda não foi criada, então
-    // a busca por linha dá falso positivo e o instalador tentaria stop/delete num nome que não
-    // existe. A forma detalhada responde de forma explícita:
-    //   - existe  -> bloco com "Auto-create:", "State:", "Instance pipe name";
-    //   - não existe -> 'The automatic instance "mssqllocaldb" is not created.' (automática)
-    //                 ou 'The specified LocalDB instance does not exist.' (instância nomeada).
-    private static async Task<bool> InstanciaExisteAsync(string exe, string nome, CancellationToken ct)
+    // Causas que não são do instalador, e que o LocalDB não explica na saída. Sem isto a mensagem
+    // só diz "não foi possível criar" e o usuário não tem por onde começar. Estas três são as que
+    // mais aparecem em outra máquina: disco cheio no volume do perfil, pasta de perfil sem
+    // permissão de escrita, e instalação do LocalDB divergente da ferramenta encontrada.
+    private static string DiagnosticoAmbiente(string nome)
     {
-        var r = await ProcessUtil.RunAsync(exe, new[] { "info", nome }, ct: ct);
-        var saida = r.Output;
+        var linhas = new List<string>();
 
-        if (saida.Contains("is not created", StringComparison.OrdinalIgnoreCase)
-            || saida.Contains("does not exist", StringComparison.OrdinalIgnoreCase))
-            return false;
+        try
+        {
+            var perfil = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            var raiz = Path.GetPathRoot(perfil);
+            if (!string.IsNullOrEmpty(raiz))
+            {
+                var livre = new DriveInfo(raiz).AvailableFreeSpace;
+                var gb = Math.Round(livre / 1024d / 1024d, 1);
+                linhas.Add($"Espaço livre em {raiz}: {gb} GB (o LocalDB precisa de alguns centenas de MB; abaixo de 1 GB a criação falha).");
+                if (livre < 1024L * 1024 * 1024)
+                    linhas.Add("      -> O espaço livre parece ser a causa. Libere espaço e execute de novo.");
+            }
 
-        return saida.Contains("Auto-create", StringComparison.OrdinalIgnoreCase)
-            || saida.Contains("Instance pipe name", StringComparison.OrdinalIgnoreCase);
+            var pasta = PastaInstanciaLocalDb(nome);
+            linhas.Add("Pasta de perfil do LocalDB: " + pasta);
+
+            if (!Directory.Exists(pasta))
+            {
+                try
+                {
+                    Directory.CreateDirectory(pasta);
+                    linhas.Add("      -> A pasta não existia e foi criada agora: o perfil tem permissão de escrita.");
+                }
+                catch (Exception ex)
+                {
+                    linhas.Add("      -> A pasta não pôde ser criada (" + ex.Message + "). Perfil de usuário sem permissão de escrita ou redirecionado para rede.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            linhas.Add("Não foi possível coletar o diagnóstico do ambiente: " + ex.Message);
+        }
+
+        if (linhas.Count == 0)
+            return "";
+
+        return Environment.NewLine + "      Ambiente:"
+             + Environment.NewLine + "      " + string.Join(Environment.NewLine + "      ", linhas);
     }
 
-    // Remove os arquivos de dados órfãos do banco na pasta de perfil do usuário.
+    // Consulta a instância no REGISTRO do Windows, em vez de ler a saída do SqlLocalDB.
     //
-    // POR QUE necessário: o 'sqllocaldb delete' NÃO apaga os arquivos .mdf/.ldf dos bancos de
-    // dados do usuário — ele só remove o registro da instância. Depois de recriar a instância,
-    // o 'CREATE DATABASE' da etapa 9 falha com:
-    //     Cannot create file 'C:\Users\<usuário>\<banco>.mdf' because it already exists.
-    // Como o LocalDB guarda os bancos do usuário diretamente no perfil (sem pasta própria),
-    // o instalador precisa remover esses arquivos para que a recriação do zero funcione de fato.
+    // POR QUE o registro: a saída do SqlLocalDB é traduzida. Numa máquina em português o
+    // 'create' responde "Instância LocalDB ... criada com versão ..." e o 'info' traz
+    // "Criação automática:" e "Nome do pipe da instância:". O código procurava 'Auto-create' e
+    // 'Instance pipe name', não encontrava, e declarava falha DEPOIS de criar a instância com
+    // sucesso. O registro não é traduzido: cada instância tem uma subchave em
+    // HKCU\SOFTWARE\Microsoft\Microsoft SQL Server\UserInstances, e o valor 'DataDirectory'
+    // termina com o nome da instância. O 'InstanceProcessId' traz o PID do motor (e só existe
+    // enquanto ele está no ar), o que dá um jeito preciso de esperar o motor encerrar.
+    private static (bool Existe, string Pasta, int PidMotor) ConsultarInstancia(string nome)
+    {
+        try
+        {
+            using var raiz = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Default);
+            using var chaves = raiz.OpenSubKey(@"SOFTWARE\Microsoft\Microsoft SQL Server\UserInstances");
+            if (chaves == null)
+                return (false, "", 0);
+
+            foreach (var sub in chaves.GetSubKeyNames())
+            {
+                using var k = chaves.OpenSubKey(sub);
+                var dir = k?.GetValue("DataDirectory") as string;
+                if (string.IsNullOrEmpty(dir))
+                    continue;
+
+                var pasta = dir.TrimEnd('\\');
+                if (!pasta.EndsWith("\\" + nome, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                return (true, pasta, k?.GetValue("InstanceProcessId") is int pid ? pid : 0);
+            }
+        }
+        catch
+        {
+            // Sem acesso ao registro: cai no método textual como último recurso.
+        }
+
+        return (false, "", 0);
+    }
+
+    private static bool ProcessoVivo(int pid)
+    {
+        if (pid <= 0)
+            return false;
+
+        try
+        {
+            using var p = Process.GetProcessById(pid);
+            return !p.HasExited;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool InstanciaExiste(string nome)
+        => ConsultarInstancia(nome).Existe;
+
+    // O motor está no ar quando o registro traz um InstanceProcessId cujo processo existe.
+    private static bool MotorRodando(string nome)
+    {
+        var (_, _, pid) = ConsultarInstancia(nome);
+        return ProcessoVivo(pid);
+    }
+
+    // Remove os arquivos de dados órfãos do banco, em TODOS os lugares onde ele pode ter
+    // ficado: a pasta de instalação e o perfil do usuário.
+    //
+    // POR QUE as duas: até a instalação gravar o banco na pasta de instalação, o LocalDB deixava
+    // o .mdf em C:\Users\<usuário>. Agora o .mdf nasce em <instalação>, mas uma instalação feita
+    // com a versão anterior deixou o arquivo no perfil, e apagar a instância continua não
+    // apagando nenhum dos dois. Sem varrer os dois lugares, a recriação falha com
+    // "Cannot create file ... because it already exists".
     //
     // POR QUE agora falha em vez de só avisar: quando o arquivo está preso pelo motor antigo, a
     // etapa 6 "passava" e a falha só aparecia na etapa 9, com um CREATE DATABASE que não
     // apontava a origem. Falhar aqui, com o nome do arquivo e a instrução, é muito mais honesto.
-    private static async Task RemoverArquivosBancoOrfaosAsync(string nomeBanco, Action<string> onLog, CancellationToken ct)
+    private static async Task RemoverArquivosBancoOrfaosAsync(SetupContext ctx, Action<string> onLog, CancellationToken ct)
     {
-        var perfil = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (string.IsNullOrEmpty(perfil))
-            return;
+        var nomes = new[] { ctx.NomeBanco + ".mdf", ctx.NomeBanco + "_log.ldf", ctx.NomeBanco + ".ldf" };
 
-        var nomes = new[] { nomeBanco + ".mdf", nomeBanco + "_log.ldf", nomeBanco + ".ldf" };
+        var pastas = new List<string> { ctx.PastaBancoEfetiva };
+        var perfil = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (!string.IsNullOrEmpty(perfil) && !pastas.Contains(perfil, StringComparer.OrdinalIgnoreCase))
+            pastas.Add(perfil);
 
         for (int tentativa = 1; tentativa <= 3; tentativa++)
         {
             var restantes = new List<string>();
             var removidos = 0;
 
+            foreach (var pasta in pastas)
             foreach (var nome in nomes)
             {
-                var caminho = Path.Combine(perfil, nome);
+                var caminho = Path.Combine(pasta, nome);
                 if (!File.Exists(caminho))
                     continue;
 
@@ -600,14 +775,9 @@ public static class PreparadorAmbiente
         }
     }
 
-    // Detecta a mensagem de erro do SqlLocalDB.exe no texto de saída. As mensagens são em inglês
-    // mesmo em Windows localizado, e as de sucesso nunca contêm estas palavras.
-    private static bool FalhouNoLocalDb((int ExitCode, string Output) r)
-        => r.Output.Contains("failed", StringComparison.OrdinalIgnoreCase)
-        || r.Output.Contains("error", StringComparison.OrdinalIgnoreCase);
-
     // Condensa a saída do SqlLocalDB em uma linha legível para a mensagem de erro, já que ela
-    // vem com as quebras de linha do console.
+    // vem com as quebras de linha do console. É apenas para diagnóstico: o texto vem traduzido
+    // conforme o idioma do Windows e por isso NÃO decide se a operação deu certo.
     private static string Resumir(string saida)
     {
         var texto = string.Join(" ", saida.Split('\n', StringSplitOptions.RemoveEmptyEntries)
@@ -675,6 +845,91 @@ public static class PreparadorAmbiente
 
         if (r.ExitCode != 0)
             throw new Exception("Falha em 'dotnet restore' (código " + r.ExitCode + ").");
+    }
+
+    // Cria o banco com os arquivos .mdf/.ldf dentro da pasta de instalação.
+    //
+    // POR QUE não deixa o 'dotnet ef database update' criar: o LocalDB guarda os bancos de
+    // usuário no PERFIL do Windows, e o EF usa o caminho padrão do servidor ao criar. O
+    // resultado era C:\Users\<usuário>\<banco>.mdf, espalhado fora da instalação e perdido a
+    // cada troca de usuário do Windows. Declarando FILENAME, o banco nasce onde se espera:
+    // junto do executável.
+    //
+    // O passo seguinte ('dotnet ef database update') continua funcionando: ele detecta que o
+    // banco já existe e apenas aplica as migrações.
+    private static async Task CriarBancoNaPastaDeInstalacaoAsync(SetupContext ctx, Action<string> onLog, CancellationToken ct)
+    {
+        var pasta = ctx.PastaBancoEfetiva;
+        var nome = ctx.NomeBanco;
+
+        // O nome entra dentro de um comando SQL e de nomes de arquivo, então é validado aqui.
+        // A tela do instalador já restringe a letras/números/'_', mas esta função não depende
+        // disso: é chamada pelo motor, e o motor não valida.
+        if (string.IsNullOrWhiteSpace(nome) || nome.Any(c => !(char.IsLetterOrDigit(c) || c == '_')))
+            throw new Exception(
+                "Nome de banco inválido: \"" + nome + "\". Use apenas letras, números e '_'.");
+
+        try
+        {
+            Directory.CreateDirectory(pasta);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception(
+                "Não foi possível criar a pasta do banco em \"" + pasta + "\": " + ex.Message +
+                ". O banco precisa ficar numa pasta onde o usuário atual possa escrever.");
+        }
+
+        var mdf = Path.Combine(pasta, nome + ".mdf");
+        var ldf = Path.Combine(pasta, nome + "_log.ldf");
+
+        // Aspa simples fecharia o literal SQL. Num caminho padrão isso nunca acontece, mas um
+        // usuário que aponte a pasta para um caminho com apóstrofo merece erro claro, não SQL
+        // malformado.
+        if (mdf.Contains('\'') || ldf.Contains('\''))
+            throw new Exception("A pasta do banco não pode conter apóstrofo: \"" + pasta + "\".");
+
+        // A conexão vai para o master: conectar direto no banco que ainda não existe falharia,
+        // que é exatamente o que se quer evitar aqui.
+        var conexao = new SqlConnectionStringBuilder(ctx.ConnectionString)
+        {
+            InitialCatalog = "master",
+        }.ConnectionString;
+
+        const string sql = @"
+IF DB_ID(@nome) IS NULL
+BEGIN
+    DECLARE @cmd nvarchar(max) =
+        N'CREATE DATABASE ' + QUOTENAME(@nome) +
+        N' ON PRIMARY (NAME = N''' + @nome + N''', FILENAME = N''' + @mdf + N''', SIZE = 32MB, FILEGROWTH = 16MB)' +
+        N' LOG ON (NAME = N''' + @nome + N'_log'', FILENAME = N''' + @ldf + N''', SIZE = 8MB, FILEGROWTH = 8MB)';
+    EXEC sp_executesql @cmd;
+END";
+
+        try
+        {
+            await using var cn = new SqlConnection(conexao);
+            await cn.OpenAsync(ct);
+
+            await using var cmd = cn.CreateCommand();
+            cmd.CommandText = sql;
+            cmd.Parameters.AddWithValue("@nome", nome);
+            cmd.Parameters.AddWithValue("@mdf", mdf);
+            cmd.Parameters.AddWithValue("@ldf", ldf);
+            await cmd.ExecuteNonQueryAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception(
+                "Não foi possível criar o banco \"" + nome + "\" com os arquivos em \"" + pasta + "\": "
+                + ex.Message +
+                " Verifique se o usuário tem permissão de escrita nessa pasta e se há espaço livre.");
+        }
+
+        if (File.Exists(mdf))
+            onLog("  Banco criado com os arquivos em: " + pasta);
+        else
+            onLog("  Banco já existia; arquivos mantidos em: " + pasta);
     }
 
     // Aplica as migrações do EF Core, criando o banco caso ainda não exista.
