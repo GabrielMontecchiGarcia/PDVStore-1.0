@@ -49,9 +49,9 @@ namespace PDVStore.Forms
         {
             Text = "Fornecedores";
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(920, 560);
-            MaximumSize = new Size(920, 560);
-            MinimumSize = new Size(920, 560);
+            ClientSize = new Size(920, 590);
+            MaximumSize = new Size(920, 590);
+            MinimumSize = new Size(920, 590);
             MaximizeBox = false;
             Font = new Font("Segoe UI", 10F);
             BackColor = Color.White;
@@ -67,8 +67,8 @@ namespace PDVStore.Forms
             txtCnpj.TextChanged += TxtCnpj_TextChanged;
             Controls.Add(txtCnpj);
 
-            Controls.Add(new Label { Text = "Telefone:", Location = new Point(450, y), AutoSize = true });
-            txtTelefone = new TextBox { Location = new Point(560, y - 4), Size = new Size(180, 26) };
+            Controls.Add(new Label { Text = "Telefone:", Location = new Point(15, y + 85), AutoSize = true });
+            txtTelefone = new TextBox { Location = new Point(150, y + 80), Size = new Size(180, 26) };
             txtTelefone.TextChanged += TxtTelefone_TextChanged;
             Controls.Add(txtTelefone);
 
@@ -76,12 +76,12 @@ namespace PDVStore.Forms
             txtEmail = new TextBox { Location = new Point(150, y - 4), Size = new Size(380, 26) };
             Controls.Add(txtEmail);
 
-            btnSalvar = new Button { Text = "Salvar", Location = new Point(150, y + 36), Size = new Size(110, 32), BackColor = Color.ForestGreen, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnNovo = new Button { Text = "Novo", Location = new Point(270, y + 36), Size = new Size(90, 32), FlatStyle = FlatStyle.Flat };
-            btnDesativar = new Button { Text = "Desativar", Location = new Point(370, y + 36), Size = new Size(100, 32), BackColor = Color.Firebrick, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnSalvar = new Button { Text = "Salvar", Location = new Point(150, y + 80), Size = new Size(110, 32), BackColor = Color.ForestGreen, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnNovo = new Button { Text = "Novo", Location = new Point(270, y + 80), Size = new Size(90, 32), FlatStyle = FlatStyle.Flat };
+            btnDesativar = new Button { Text = "Desativar", Location = new Point(370, y + 80), Size = new Size(100, 32), BackColor = Color.Firebrick, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
 
-            var btnExportarPdf = new Button { Text = "Exportar PDF", Location = new Point(480, y + 36), Size = new Size(120, 32), FlatStyle = FlatStyle.Flat };
-            var btnExportarExcel = new Button { Text = "Exportar Excel", Location = new Point(610, y + 36), Size = new Size(120, 32), FlatStyle = FlatStyle.Flat };
+            var btnExportarPdf = new Button { Text = "Exportar PDF", Location = new Point(480, y + 80), Size = new Size(120, 32), FlatStyle = FlatStyle.Flat };
+            var btnExportarExcel = new Button { Text = "Exportar Excel", Location = new Point(610, y + 80), Size = new Size(120, 32), FlatStyle = FlatStyle.Flat };
 
             btnSalvar.Click += async (_, _) => await SalvarAsync();
             btnNovo.Click += (_, _) => LimparCampos();
