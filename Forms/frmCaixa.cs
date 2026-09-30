@@ -40,9 +40,9 @@ namespace PDVStore.Forms
         {
             Text = "Abertura / Fechamento de Caixa";
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(820, 560);
-            MaximumSize = new Size(820, 560);
-            MinimumSize = new Size(820, 560);
+            ClientSize = new Size(830, 585);
+            MaximumSize = new Size(830, 585);
+            MinimumSize = new Size(830, 585);
             MaximizeBox = false;
             Font = new Font("Segoe UI", 10F);
             BackColor = Color.White;
