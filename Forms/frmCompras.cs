@@ -105,7 +105,7 @@ namespace PDVStore.Forms
             this.MaximizeBox = false;
 
 
-            btnSalvar = new Button { Text = "Salvar compra", Location = new Point(820, 166), Size = new Size(160, 36), BackColor = Color.ForestGreen, ForeColor = Color.White, Font = new Font("Segoe UI", 10F, FontStyle.Bold), FlatStyle = FlatStyle.Flat };
+            btnSalvar = new Button { Text = "Salvar compra", Location = new Point(756, 160), Size = new Size(160, 36), BackColor = Color.ForestGreen, ForeColor = Color.White, Font = new Font("Segoe UI", 10F, FontStyle.Bold), FlatStyle = FlatStyle.Flat };
 
             grpRegistro.Controls.AddRange(new Control[] {
                 lblForne, cmbFornecedor, lblNota, txtNota, lblProduto, cmbProduto, lblQtd, txtQtd, lblCusto, txtCusto,
