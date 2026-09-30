@@ -27,21 +27,28 @@ namespace PDVStore.Forms
         {
             InitializeComponent();
             Tema.Aplicar(this);
+
+            // Altera o título da janela para um nome mais amigável
+            this.Text = "Gerenciamento de Usuários";
+
             _context = context;
             _serviceProvider = serviceProvider;
 
             ConfigurarGrid();
             CarregarUsuarios();
 
-            var btnExportarPdf = new Button { Text = "Exportar PDF", Location = new Point(605, 290), Size = new Size(125, 29), FlatStyle = FlatStyle.Flat };
-            var btnExportarExcel = new Button { Text = "Exportar Excel", Location = new Point(605, 325), Size = new Size(125, 29), FlatStyle = FlatStyle.Flat };
+            // Botões reposicionados mais para cima para alinhar com o grid
+            var btnExportarPdf = new Button { Text = "Exportar PDF", Location = new Point(605, 245), Size = new Size(125, 29), FlatStyle = FlatStyle.Flat };
+            var btnExportarExcel = new Button { Text = "Exportar Excel", Location = new Point(605, 280), Size = new Size(125, 29), FlatStyle = FlatStyle.Flat };
+
             btnExportarPdf.Click += (_, _) => ExportadorService.ExportarPdf(dgvUsuarios, "Usuários", $"Usuarios_{DateTime.Now:yyyyMMdd_HHmm}.pdf");
             btnExportarExcel.Click += (_, _) => ExportadorService.ExportarExcel(dgvUsuarios, "Usuários", $"Usuarios_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
+
+            // Certifique-se de adicionar os controles à tela caso eles não estejam no InitializeComponent
             this.Controls.Add(btnExportarPdf);
             this.Controls.Add(btnExportarExcel);
-
-            txtBusca.TextChanged += TxtBusca_TextChanged;
         }
+
 
         // Configura as colunas do DataGridView de usuários, incluindo a coluna de foto. 
         // O QUE FAZ: desliga a geração automática de colunas, define altura da linha e
