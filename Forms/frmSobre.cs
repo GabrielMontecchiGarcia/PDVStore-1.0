@@ -25,10 +25,20 @@ namespace PDVStore.Forms
             Tema.Aplicar(this);
             this.Text = String.Format("About {0}", AssemblyTitle);
             this.labelProductName.Text = AssemblyProduct;
-            this.labelVersion.Text = String.Format("Version {0}", AssemblyVersion);
-            this.labelCopyright.Text = AssemblyCopyright;
-            this.labelCompanyName.Text = AssemblyCompany;
-            this.textBoxDescription.Text = AssemblyDescription;
+            this.labelVersion.Text = String.Format("Versão {0}", AssemblyVersion);
+            this.labelCopyright.Text = "Profº. Marcio de Andrade - Turma: 2025.4.54";
+            this.labelCompanyName.Text = "Curso Técnico em Informática - SENAC Ji-Paraná";
+            this.textBoxDescription.Text = "Antonio Manoel Rodrigues da Costa\r\n" +
+                "Eduardo da Silva Oliveira\r\n"+
+                "Gabriel Montecchi Garcia\r\n"+
+                "João Paulo de Oliveira Morais\r\n"+
+                "José Luis Limeira Izel Mota\r\n" +
+                "José Roniele do Nascimento Monteiro\r\n" +
+                "Karoline Fernandes Jandre\r\n" +
+                "Miguel Henrique de Lucena Ribeiro\r\n"+
+                "Pedro Henrique da Rocha\r\n"+
+                "Salomão Targa Almeida Rodrigues\r\n"
+                ;
         }
 
         #region Assembly Attribute Accessors
