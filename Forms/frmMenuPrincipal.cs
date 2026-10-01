@@ -23,6 +23,7 @@ namespace PDVStore.Forms
             Tema.Aplicar(this);
             _serviceProvider = serviceProvider;
             BuildUI();
+            Tema.Aplicar(this);
         }
 
         // Monta a interface principal: saudação, rodapé e botões de atalho.
