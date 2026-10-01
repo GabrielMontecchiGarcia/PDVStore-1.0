@@ -1,3 +1,4 @@
+using PDVStore.Helpers;
 using PDVStore.Services;
 using System;
 using System.Drawing;
@@ -31,6 +32,7 @@ namespace PDVStore.Forms
         {
             _verificacao = verificacao ?? throw new ArgumentNullException(nameof(verificacao));
             BuildUI();
+            Tema.Aplicar(this);
             Shown += async (_, _) => await ExecutarVerificacaoAsync();
         }
 

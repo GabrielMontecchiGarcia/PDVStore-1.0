@@ -1,3 +1,4 @@
+using PDVStore.Helpers;
 using PDVStore.Models;
 using PDVStore.Services;
 using System;
@@ -28,6 +29,7 @@ namespace PDVStore.Forms
         {
             _caixaService = caixaService ?? throw new ArgumentNullException(nameof(caixaService));
             BuildUI();
+            Tema.Aplicar(this);
             Load += async (_, _) => await AtualizarAsync();
         }
 
