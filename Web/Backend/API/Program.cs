@@ -1,0 +1,194 @@
+using System.Text;
+using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using PDVStore.API.Common;
+using PDVStore.API.Configuration;
+using PDVStore.API.Security;
+using PDVStore.Middleware;
+using PDVStore.Repository.Context;
+using Serilog;
+
+// ---------------------------------------------------------------------------
+// Logging estruturado (Serilog): console + arquivo diário com retenção de 14 dias,
+// equivalente ao log em arquivo do sistema Windows.
+// ---------------------------------------------------------------------------
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File("logs/pdvstore-web-.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 14)
+    .CreateLogger();
+
+try
+{
+    var builder = WebApplication.CreateBuilder(args);
+    builder.Host.UseSerilog();
+
+    // Fuso horário usado nos relatórios (substitui o ToLocalTime da máquina).
+    var fusoId = builder.Configuration["App:TimeZone"] ?? "America/Sao_Paulo";
+    TimeZoneInfo fuso;
+    try
+    {
+        fuso = TimeZoneInfo.FindSystemTimeZoneById(fusoId);
+    }
+    catch (Exception ex)
+    {
+        Log.Warning(ex, "Fuso {Fuso} indisponível; usando UTC.", fusoId);
+        fuso = TimeZoneInfo.Utc;
+    }
+
+    // JWT: chave obrigatória (mínimo 32 caracteres) vinda de configuração/segredo.
+    var jwtSection = builder.Configuration.GetSection("Jwt");
+    builder.Services.Configure<JwtOptions>(jwtSection);
+    var jwt = jwtSection.Get<JwtOptions>() ?? new JwtOptions();
+
+    if (string.IsNullOrWhiteSpace(jwt.Key) || jwt.Key.Length < 32)
+        throw new InvalidOperationException(
+            "Jwt:Key não configurada ou com menos de 32 caracteres. Use a variável de ambiente Jwt__Key.");
+
+    // MVC + validação automática (FluentValidation) + Swagger + DI.
+    builder.Services.AddControllers();
+    builder.Services.AddFluentValidationAutoValidation();
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen(options =>
+    {
+        options.SwaggerDoc("v1", new OpenApiInfo
+        {
+            Title = "PDVStore Web API",
+            Version = "v1",
+            Description = "API REST do PDVStore — mesma lógica de negócio do sistema Windows."
+        });
+
+        var scheme = new OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description = "Informe apenas o token JWT (sem o prefixo Bearer).",
+            Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+        };
+
+        options.AddSecurityDefinition("Bearer", scheme);
+        options.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            { scheme, Array.Empty<string>() }
+        });
+    });
+
+    builder.Services.AddPdvStore(builder.Configuration, fuso);
+
+    // Autenticação JWT + policies por perfil (matriz de acesso do menu original).
+    builder.Services
+        .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = jwt.Issuer,
+                ValidAudience = jwt.Audience,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key)),
+                ClockSkew = TimeSpan.FromMinutes(1)
+            };
+        });
+
+    builder.Services.AddAuthorization(options =>
+    {
+        // Somente Administrador (usuários, caixa, compras, fornecedores, relatórios).
+        options.AddPolicy("Administrador", policy => policy.RequireRole("Administrador"));
+
+        // PDV: Administrador e Operador (Caixa).
+        options.AddPolicy("Pdv", policy => policy.RequireRole("Administrador", "Operador"));
+
+        // Produtos: Administrador e Estoquista.
+        options.AddPolicy("Produtos", policy => policy.RequireRole("Administrador", "Estoquista"));
+    });
+
+    // CORS restrito às origens configuradas (frontend React).
+    var origens = builder.Configuration.GetSection("Cors:Origins").Get<string[]>()
+                  ?? new[] { "http://localhost:5173" };
+
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("Frontend", policy =>
+            policy.WithOrigins(origens).AllowAnyHeader().AllowAnyMethod());
+    });
+
+    var app = builder.Build();
+
+    // Pipeline HTTP: erros globais, logs, CORS, headers de segurança e auth.
+    app.UseMiddleware<GlobalExceptionMiddleware>();
+    app.UseSerilogRequestLogging();
+
+    app.Use(async (context, next) =>
+    {
+        // Cabeçalhos de segurança (XSS/clickjacking/sniffing).
+        context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+        context.Response.Headers["X-Frame-Options"] = "DENY";
+        context.Response.Headers["Referrer-Policy"] = "no-referrer";
+        context.Response.Headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()";
+        await next();
+    });
+
+    app.UseCors("Frontend");
+
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseHsts();
+        app.UseHttpsRedirection();
+    }
+
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
+
+    app.UseAuthentication();
+    app.UseAuthorization();
+
+    app.MapControllers();
+    app.MapGet("/health", () => Results.Ok(new
+    {
+        status = "ok",
+        sistema = "PDVStore Web API",
+        utc = DateTime.UtcNow
+    })).AllowAnonymous();
+
+    // Aplicação opcional das migrations no startup (equivalente ao passo 3 da splash).
+    if (builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PDVStoreDbContext>();
+        try
+        {
+            await db.Database.MigrateAsync();
+            Log.Information("Migrations aplicadas com sucesso.");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Falha ao aplicar migrations no startup.");
+            throw;
+        }
+    }
+
+    Log.Information("PDVStore Web API iniciada.");
+    await app.RunAsync();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Falha ao iniciar a API");
+    throw;
+}
+finally
+{
+    await Log.CloseAndFlushAsync();
+}
