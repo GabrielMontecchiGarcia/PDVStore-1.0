@@ -16,6 +16,11 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: proxyTarget,
           changeOrigin: true
+        },
+        // Fotos de usuário gravadas pela API (wwwroot/uploads).
+        '/uploads': {
+          target: proxyTarget,
+          changeOrigin: true
         }
       }
     }

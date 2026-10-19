@@ -45,5 +45,17 @@ export const usuarioService = {
 
   async desativar(id: number): Promise<void> {
     await api.delete(`/usuarios/${id}`);
+  },
+
+  /**
+   * Envia a foto do usuário (equivalente ao botão "Escolher Foto" do sistema
+   * Windows) e devolve o caminho público para gravar no cadastro.
+   */
+  async enviarFoto(arquivo: File): Promise<{ caminho: string }> {
+    const dados = new FormData();
+    dados.append('arquivo', arquivo);
+
+    const { data } = await api.post<{ caminho: string }>('/usuarios/foto', dados);
+    return data;
   }
 };

@@ -187,9 +187,11 @@ zera a senha do admin para `admin123` quando diferente). **Esse comportamento de
 | 15 | XSS | React escapa conteúdo por padrão; proibido `dangerouslySetInnerHTML`; API não devolve HTML; headers de segurança |
 | 16 | Arredondamento monetário | Nenhum arredondamento adicional (igual ao original); SQL `decimal(18,2)` |
 | 17 | `Compra.UsuarioCaixaId` obrigatório | Usuário autenticado do token; compras não podem ser anônimas |
-| 18 | Upload de foto do usuário (WinForms) | Web recebe `fotoPath` (string) e mantém o campo; upload de arquivo não foi implementado para não criar armazenamento novo sem requisito |
+| 18 | Upload de foto do usuário (WinForms) | **Implementado na web**: `POST /api/usuarios/foto` valida extensão/tamanho/magic bytes, grava em `wwwroot/uploads/usuarios` com nome gerado pelo servidor e devolve o caminho público (equivalente a `Resources/Users`) |
 | 19 | Migrations EF da web | Migration inicial própria + scripts SQL versionados equivalentes ao snapshot original |
 | 20 | Relatórios síncronos | Consultas assíncronas equivalentes; exportações PDF/Excel mantidas |
+| 21 | Cancelamento de venda existia apenas como serviço (sem tela no WinForms) | A web ganha a tela **Vendas** (Administrador) que expõe a regra já existente de `VendaService.CancelarVendaAsync` — nenhuma regra nova foi criada |
+| 22 | Cobertura de testes do sistema Windows (165 NUnit) | A web soma 74 testes unitários das regras + 8 testes de integração da API (HTTP), em `Web/Backend/Tests` |
 
 ## 8. Fluxos que serão implementados na versão web
 

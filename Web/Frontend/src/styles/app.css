@@ -262,3 +262,19 @@
   .def-list { grid-template-columns: 1fr; }
   .sobre-hero { flex-direction: column; align-items: flex-start; }
 }
+
+/* ------------------------------- Foto do usuário -------------------------- */
+.avatar-foto { overflow: hidden; padding: 0; }
+.avatar-foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.foto-usuario { display: flex; align-items: center; gap: 14px; }
+.foto-preview {
+  width: 64px; height: 64px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%; overflow: hidden;
+  background: var(--primary-soft); color: var(--primary-ink);
+  border: 1px solid var(--border);
+}
+.foto-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.foto-acoes { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.foto-acoes small { font-size: 11px; }

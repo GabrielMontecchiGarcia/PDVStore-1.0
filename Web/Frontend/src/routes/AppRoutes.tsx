@@ -9,6 +9,7 @@ import { EstoquePage } from '../pages/EstoquePage';
 import { ClientesPage } from '../pages/ClientesPage';
 import { FornecedoresPage } from '../pages/FornecedoresPage';
 import { ComprasPage } from '../pages/ComprasPage';
+import { VendasPage } from '../pages/VendasPage';
 import { CaixaPage } from '../pages/CaixaPage';
 import { UsuariosPage } from '../pages/UsuariosPage';
 import { SobrePage } from '../pages/SobrePage';
@@ -54,6 +55,10 @@ export function AppRoutes() {
           <Route
             path="compras"
             element={<Protegida perfis={['Administrador']}><ComprasPage /></Protegida>}
+          />
+          <Route
+            path="vendas"
+            element={<Protegida perfis={['Administrador']}><VendasPage /></Protegida>}
           />
           <Route
             path="caixa"

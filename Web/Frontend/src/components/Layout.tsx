@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import type { PermissaoNome } from '../models';
 import { Icon, type IconName } from './Icon';
 import { AlterarSenhaModal } from './AlterarSenhaModal';
+import { urlDeArquivo } from '../utils/download';
 
 // ============================================================================
 // Layout autenticado: menu lateral com itens filtrados por perfil (mesma matriz
@@ -25,6 +26,7 @@ const ITENS_MENU: ItemMenu[] = [
   { para: '/clientes', rotulo: 'Clientes', icone: 'users', perfis: ['Administrador'] },
   { para: '/fornecedores', rotulo: 'Fornecedores', icone: 'truck', perfis: ['Administrador'] },
   { para: '/compras', rotulo: 'Compras', icone: 'shopping', perfis: ['Administrador'] },
+  { para: '/vendas', rotulo: 'Vendas', icone: 'receipt', perfis: ['Administrador'] },
   { para: '/caixa', rotulo: 'Abrir/Fechar Caixa', icone: 'cash', perfis: ['Administrador'] },
   { para: '/usuarios', rotulo: 'Usuários', icone: 'userCog', perfis: ['Administrador'] },
   { para: '/sobre', rotulo: 'Sobre', icone: 'info', perfis: ['Administrador', 'Operador', 'Estoquista'] }
@@ -47,6 +49,9 @@ export function Layout() {
     .slice(0, 2)
     .map((parte) => parte[0]?.toUpperCase())
     .join('');
+
+  // Foto cadastrada do usuário (enviada pela API) — fallback: iniciais.
+  const fotoUsuario = urlDeArquivo(usuario?.fotoPath);
 
   const encerrarSessao = () => {
     sair();
@@ -99,7 +104,13 @@ export function Layout() {
           </div>
 
           <div className="topbar-user">
-            <div className="avatar" aria-hidden="true">{iniciais}</div>
+            {fotoUsuario ? (
+              <span className="avatar avatar-foto">
+                <img src={fotoUsuario} alt={`Foto de ${usuario?.nome ?? 'usuário'}`} />
+              </span>
+            ) : (
+              <div className="avatar" aria-hidden="true">{iniciais}</div>
+            )}
             <div className="user-info">
               <strong>{usuario?.nome}</strong>
               <small>{usuario?.permissaoDescricao}</small>

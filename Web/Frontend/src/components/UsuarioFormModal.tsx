@@ -1,14 +1,18 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { PERMISSOES, type Usuario } from '../models';
 import { usuarioService } from '../services/usuarioService';
 import { useToast } from '../contexts/ToastContext';
 import { mensagemDeErro } from '../utils/format';
+import { urlDeArquivo } from '../utils/download';
 import { Modal } from './Modal';
+import { Icon } from './Icon';
 
 // ============================================================================
 // Formulário de usuário. Regras do frmCadastroUsuario: nome obrigatório e único,
 // senha mínima de 6 e confirmação igual; na edição o nome é imutável e a senha
 // é sempre redefinida (mesmo comportamento da tela original).
+// Inclui a foto do usuário (botão "Escolher Foto" do sistema Windows), enviada
+// para a API e gravada em UsuarioCaixa.FotoPath.
 // ============================================================================
 
 interface UsuarioFormModalProps {
@@ -18,12 +22,17 @@ interface UsuarioFormModalProps {
   onSalvo: () => void;
 }
 
+const TAMANHO_MAXIMO_MB = 2;
+
 export function UsuarioFormModal({ aberto, usuario, onFechar, onSalvo }: UsuarioFormModalProps) {
   const { sucesso, erro } = useToast();
   const [nome, setNome] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmacao, setConfirmacao] = useState('');
   const [permissao, setPermissao] = useState<number>(1);
+  const [fotoPath, setFotoPath] = useState('');
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [previa, setPrevia] = useState<string | null>(null);
   const [erroLocal, setErroLocal] = useState('');
   const [salvando, setSalvando] = useState(false);
 
@@ -34,7 +43,32 @@ export function UsuarioFormModal({ aberto, usuario, onFechar, onSalvo }: Usuario
     setSenha('');
     setConfirmacao('');
     setPermissao(usuario?.permissaoCodigo ?? 1);
+    setFotoPath(usuario?.fotoPath ?? '');
+    setArquivo(null);
+    setPrevia(null);
   }, [aberto, usuario]);
+
+  // Libera a memória do preview temporário da imagem.
+  useEffect(() => () => { if (previa) URL.revokeObjectURL(previa); }, [previa]);
+
+  const escolherFoto = (evento: ChangeEvent<HTMLInputElement>) => {
+    const arquivoEscolhido = evento.target.files?.[0];
+    if (!arquivoEscolhido) return;
+
+    if (!arquivoEscolhido.type.startsWith('image/')) {
+      setErroLocal('Selecione um arquivo de imagem.');
+      return;
+    }
+
+    if (arquivoEscolhido.size > TAMANHO_MAXIMO_MB * 1024 * 1024) {
+      setErroLocal('A imagem deve ter no máximo 2 MB.');
+      return;
+    }
+
+    setErroLocal('');
+    setArquivo(arquivoEscolhido);
+    setPrevia(URL.createObjectURL(arquivoEscolhido));
+  };
 
   const enviar = async (evento: FormEvent) => {
     evento.preventDefault();
@@ -46,13 +80,32 @@ export function UsuarioFormModal({ aberto, usuario, onFechar, onSalvo }: Usuario
 
     setSalvando(true);
     try {
+      // A foto é enviada antes do salvamento; sem nova foto, preserva a anterior.
+      let caminhoFinal = fotoPath;
+      if (arquivo) {
+        const enviada = await usuarioService.enviarFoto(arquivo);
+        caminhoFinal = enviada.caminho;
+      }
+
       if (usuario) {
-        await usuarioService.atualizar(usuario.id, { senha, confirmacaoSenha: confirmacao, permissao });
+        await usuarioService.atualizar(usuario.id, {
+          senha,
+          confirmacaoSenha: confirmacao,
+          permissao,
+          fotoPath: caminhoFinal || null
+        });
         sucesso('Usuário atualizado com sucesso.');
       } else {
-        await usuarioService.criar({ nome: nome.trim(), senha, confirmacaoSenha: confirmacao, permissao });
+        await usuarioService.criar({
+          nome: nome.trim(),
+          senha,
+          confirmacaoSenha: confirmacao,
+          permissao,
+          fotoPath: caminhoFinal || null
+        });
         sucesso('Usuário salvo com sucesso.');
       }
+
       onSalvo();
       onFechar();
     } catch (e) {
@@ -61,6 +114,8 @@ export function UsuarioFormModal({ aberto, usuario, onFechar, onSalvo }: Usuario
       setSalvando(false);
     }
   };
+
+  const fotoAtual = previa ?? urlDeArquivo(fotoPath);
 
   return (
     <Modal
@@ -72,6 +127,32 @@ export function UsuarioFormModal({ aberto, usuario, onFechar, onSalvo }: Usuario
     >
       <form onSubmit={enviar} className="form-stack">
         {erroLocal && <div className="alert alert-danger">{erroLocal}</div>}
+
+        <div className="foto-usuario">
+          <span className="foto-preview">
+            {fotoAtual ? (
+              <img src={fotoAtual} alt={`Foto de ${usuario?.nome ?? 'usuário'}`} />
+            ) : (
+              <Icon name="userCog" size={26} />
+            )}
+          </span>
+
+          <div className="foto-acoes">
+            <label className="btn btn-outline btn-sm">
+              <Icon name="plus" size={14} />
+              Escolher foto
+              <input type="file" accept="image/png,image/jpeg,image/bmp" onChange={escolherFoto} hidden />
+            </label>
+
+            {fotoPath && !previa && (
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setFotoPath('')}>
+                Remover foto
+              </button>
+            )}
+
+            <small className="text-muted">JPG, PNG ou BMP com até {TAMANHO_MAXIMO_MB} MB.</small>
+          </div>
+        </div>
 
         <label className="field">
           <span>Nome de usuário *</span>

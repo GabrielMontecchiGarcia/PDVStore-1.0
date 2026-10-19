@@ -223,7 +223,76 @@ válidos (1/2/3). Hash BCrypt nunca retornado. Exportação Excel/PDF.
 | Banco | `Repository/`, `Database/` | EF Core, migrations, scripts e procedures |
 | Testes | `Tests/` (72) | Regras, validadores e máscaras |
 
-## 12. Rastreabilidade das regras
+## 12. Foto do usuário (upload)
+
+**Objetivo:** reproduzir o botão "Escolher Foto" do `frmCadastroUsuario`, que
+copia a imagem para a pasta `Resources/Users` do sistema Windows.
+
+**Arquivos**
+- `Backend/API/Controllers/UsuariosFotoController.cs`
+- `Backend/API/wwwroot/uploads/usuarios/` (pasta servida estaticamente)
+- `Frontend/src/components/UsuarioFormModal.tsx` (seleção + preview)
+- `Frontend/src/components/Layout.tsx` (avatar com a foto no topo)
+- `Frontend/src/services/usuarioService.ts`, `utils/download.ts` (`urlDeArquivo`)
+
+**Regras/segurança:** exclusivo do Administrador; até 2 MB; extensões
+jpg/jpeg/png/bmp; validação dos bytes mágicos; nome de arquivo gerado pelo
+servidor; gravação em `wwwroot/uploads/usuarios`. Sem nova foto, a anterior é
+preservada (como na tela original).
+
+**Endpoint:** `POST /api/usuarios/foto` (multipart) → `{ "caminho": "/uploads/usuarios/..." }`.
+
+---
+
+## 13. Tela de Vendas e cancelamento
+
+**Objetivo:** expor na web a regra de cancelamento que já existia no
+`VendaService.CancelarVendaAsync` (devolve estoque, registra estorno e reduz o
+fiado), permitindo ao Administrador a consultar o histórico de vendas do período.
+
+**Arquivos**
+- `Backend/API/Controllers/VendasController.cs` (consulta + cancelamento)
+- `Frontend/src/pages/VendasPage.tsx`, `routes/AppRoutes.tsx`, `components/Layout.tsx`
+
+**Regras:** listagem por período (padrão: mês atual); cancelamento somente de venda
+`Concluida`; motivo registrado em log (não existe coluna); Indicadores de
+faturamento, quantidade, ticket médio e vendas canceladas; exportação Excel/PDF.
+
+**Endpoints/telas:** `GET /api/vendas`, `POST /api/vendas/{id}/cancelar`; tela
+**Vendas** (Administrador).
+
+---
+
+## 14. Testes de integração da API
+
+**Objetivo:** validar a API de ponta a ponta (HTTP, autenticação, autorização,
+validações e regras) sem depender de SQL Server.
+
+**Arquivos:** `Backend/Tests/Integration/ApiFactory.cs`, `ApiIntegrationTests.cs`,
+`ApiIntegrationTests.Vendas.cs`, `Backend/Tests/AssemblyInfo.cs`.
+
+**Cenários:** login válido (200 + token + perfil), senha incorreta (401 com
+mensagem em PT-BR), rota protegida sem token (401), Operador bloqueado em
+dashboard/lista de vendas (403), venda sem caixa (400 com a mensagem do PDV),
+venda com PIX concluída (201 + TxId + baixa de estoque), cliente inválido (400
+com detalhes em PT-BR), exportação Excel (200 + content-type) e upload de foto
+(extensão inválida 400, PNG válido 200).
+
+**Total da suíte:** 82 testes (74 unitários + 8 de integração).
+
+---
+
+## 15. Continuous Integration e ambiente
+
+| Item | Arquivo | Descrição |
+|---|---|---|
+| CI web | `.github/workflows/ci-web.yml` | Build/testes .NET 8 (ubuntu) + typecheck/build React; o workflow do projeto Windows segue intacto |
+| SQL Server local | `Web/docker-compose.yml` | Container `mssql/server:2022-latest` (porta 1433) com volume persistente |
+| Dados de exemplo (SQL Server) | `Database/PDVStore/Scripts/005_dados_exemplo.sql` | Produtos, clientes e fornecedor de demonstração (idempotente, opcional) |
+
+---
+
+## 16. Rastreabilidade das regras
 
 As mensagens e decisões foram mantidas iguais às do sistema Windows. Onde a UI e o
 serviço original divergiam, a escolha está documentada na seção 7 de

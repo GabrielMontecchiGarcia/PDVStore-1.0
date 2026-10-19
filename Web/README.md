@@ -34,7 +34,7 @@ nomenclatura e schema foram mapeados antes da implementação em
 | Persistência | Entity Framework Core 9, SQL Server, Repository Pattern + Unit of Work |
 | Segurança | JWT Bearer, BCrypt, autorização por policy/perfil, rate limit no login |
 | Relatórios | ClosedXML (Excel) e QuestPDF (PDF) |
-| Testes | xUnit + EF Core InMemory (72 testes) |
+| Testes | xUnit + EF Core InMemory (82 testes: 74 unitários + 8 de integração HTTP) |
 
 ---
 
@@ -119,6 +119,17 @@ dotnet run
 > Em produção, use `Jwt__Key` como secret/variável de ambiente (a API recusa
 > chaves vazias ou com menos de 32 caracteres).
 
+#### SQL Server local com Docker (opcional)
+
+```bash
+cd Web
+docker compose up -d          # sobe o SQL Server 2022 na porta 1433
+# sa: sa / Your_password123
+```
+
+Depois, aplique os scripts (`001_schema_e_seed.sql` e, se quiser dados de
+exemplo, `005_dados_exemplo.sql`) conforme `Database/PDVStore/README.md`.
+
 #### Modo demonstração (sem SQL Server)
 
 Para avaliar a aplicação completa sem instalar banco, use o provider InMemory com
@@ -193,6 +204,8 @@ Todas as rotas exigem `Authorization: Bearer <token>`, exceto login e health.
 | GET | `/api/dashboard` | Administrador | Indicadores consolidados |
 | GET | `/api/relatorios/itens-mais-vendidos`, `/estoque-minimo`, `/total-vendas` | Administrador | Relatórios |
 | GET | `/api/relatorios/exportar/{tipo}/{excel\|pdf}` | Admin (produtos: também Estoquista) | Exportação |
+| POST | `/api/usuarios/foto` | Administrador | Upload da foto do usuário (JPG/PNG/BMP, até 2 MB) |
+| GET | `/api/vendas` | Administrador | Vendas do período (tela **Vendas**) |
 | GET | `/api/sobre` | autenticado | Informações do sistema |
 | GET | `/health` | público | Health check |
 
@@ -255,6 +268,12 @@ caixa/fechamento/sangria, compras e estorno, produtos/estoque, clientes/fiado,
 usuários/BCrypt, relatórios/dashboard, validadores FluentValidation e máscaras
 (CPF, CNPJ, IE, e-mail, decimal).
 
+Os **testes de integração** (`Tests/Integration`) sobem a API real com
+`WebApplicationFactory` e banco InMemory isolado, validando o fluxo HTTP:
+login (200/401), rota sem token (401), Operador bloqueado (403), venda sem caixa
+(400) e venda PIX concluída (201 + TxId + baixa de estoque), validações em
+português (400), exportação Excel (200) e upload de foto (400/200).
+
 ```bash
 cd Frontend
 npm run build     # typecheck + build de produção
@@ -269,7 +288,24 @@ npm run build     # typecheck + build de produção
 | [`Docs/01-analise-sistema-referencia.md`](Docs/01-analise-sistema-referencia.md) | Arquitetura, entidades, relações, fluxos, validações e riscos mapeados |
 | [`Docs/02-arquitetura-e-decisoes.md`](Docs/02-arquitetura-e-decisoes.md) | Camadas, SOLID, dependências, decisões e divergências justificadas |
 | [`Docs/03-funcionalidades-implementadas.md`](Docs/03-funcionalidades-implementadas.md) | Por funcionalidade: objetivo, arquivos, regras, endpoints e impactos |
-| [`../Database/PDVStore/README.md`](../Database/PDVStore/README.md) | Scripts, schema, índices, procedures, migrations e baseline |
+| [`../Database/PDVStore/README.md`](../Database/PDVStore/README.md) | Scripts, schema, índices, procedures, migrations, baseline e dados de exemplo |
+
+---
+
+## Continuous Integration
+
+`.github/workflows/ci-web.yml` executa a cada push/PR:
+
+- **Backend**: `dotnet restore/build/test` da solução `PDVStore.Web.sln` (ubuntu, .NET 8) — inclui os 82 testes.
+- **Frontend**: `npm ci` + `npm run build` (typecheck + bundle de produção).
+
+O workflow do projeto Windows (`ci.yml`) permanece intacto e independente.
+
+> O pipeline está versionado como modelo em [`ci/ci-web.yml`](ci/ci-web.yml). Para
+> ativá-lo no GitHub Actions, copie-o para `.github/workflows/ci-web.yml` — a
+> criação de workflows exige permissão `workflows` no token used no push
+> (limitação da integração deste repositório). O mesmo vale para o job, que pode
+> ser executado manualmente ou por outro runner de CI.
 
 ---
 

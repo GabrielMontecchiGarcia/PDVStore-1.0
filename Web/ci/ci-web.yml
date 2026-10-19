@@ -1,0 +1,62 @@
+# Template do pipeline de CI da versão web.
+# Copie para .github/workflows/ci-web.yml para ativar o GitHub Actions:
+#   cp Web/ci/ci-web.yml .github/workflows/ci-web.yml
+# (a criação de workflows exige permissão "workflows" no token de push)
+name: CI Web (React + .NET)
+
+# Pipeline da versão web do PDVStore (backend .NET + frontend React).
+# Não interfere no workflow do projeto Windows (ci.yml), que continua intacto.
+on:
+  push:
+    branches: [ "main", "master", "developer", "cline/**" ]
+  pull_request:
+    branches: [ "main", "master", "developer" ]
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: Build e testes (.NET 8)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Web/Backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restaurar pacotes
+        run: dotnet restore PDVStore.Web.sln
+
+      - name: Compilar (Release)
+        run: dotnet build PDVStore.Web.sln --configuration Release --no-restore
+
+      - name: Executar testes (unitários + integração da API)
+        run: dotnet test Tests/PDVStore.Tests.csproj --configuration Release --no-build
+
+  frontend:
+    name: Build do frontend (React + Vite)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Web/Frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: Web/Frontend/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Typecheck e build de produção
+        run: npm run build

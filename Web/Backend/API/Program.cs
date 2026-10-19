@@ -169,6 +169,9 @@ try
     app.UseMiddleware<GlobalExceptionMiddleware>();
     app.UseSerilogRequestLogging();
 
+    // Arquivos estáticos (fotos de usuário gravadas em wwwroot/uploads).
+    app.UseStaticFiles();
+
     app.Use(async (context, next) =>
     {
         // Cabeçalhos de segurança (XSS/clickjacking/sniffing).
@@ -303,4 +306,12 @@ catch (Exception ex)
 finally
 {
     await Log.CloseAndFlushAsync();
+}
+
+/// <summary>
+/// Classe parcial exposta para os testes de integração (WebApplicationFactory),
+/// permitindo sobrescrever a configuração da API em tempo de teste.
+/// </summary>
+public partial class Program
+{
 }

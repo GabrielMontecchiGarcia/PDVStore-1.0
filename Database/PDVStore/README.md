@@ -12,6 +12,7 @@ procedures opcionais de relatório. O provider usado pela API é o
 | `Scripts/002_procedures_relatorios.sql` | Opcional | `sp_RelatorioItensMaisVendidos`, `sp_FecharCaixa`, `sp_ResumoPagamentosPorForma`. |
 | `Scripts/003_procedures_dashboard.sql` | Opcional | `sp_MovimentacoesPorDia`, `sp_AlertasEstoqueMinimo`, `sp_ResumoDashboard`. |
 | `Scripts/004_baseline_banco_existente.sql` | Banco **já existente** do sistema Windows | Apenas registra a migration inicial e cria índices adicionais. **Não** recria tabelas. |
+| `Scripts/005_dados_exemplo.sql` | Avaliação/demonstração | Produtos, clientes e fornecedor de exemplo (idempotente). Não usar em produção. |
 
 Exemplo com `sqlcmd`:
 

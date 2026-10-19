@@ -34,6 +34,13 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // Upload de arquivos: remove o Content-Type padrão para que o Axios gere
+  // o multipart/form-data com o boundary correto.
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
+
   return config;
 });
 

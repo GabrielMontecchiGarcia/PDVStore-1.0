@@ -32,8 +32,10 @@ public static class DependencyInjection
             // Modo somente para desenvolvimento/demonstração: permite avaliar a
             // aplicação sem SQL Server. NÃO deve ser usado em produção, pois não
             // há persistência entre reinícios nem transações reais.
+            var nomeBanco = configuration["Database:InMemoryName"] ?? "PDVStore";
+
             services.AddDbContext<PDVStoreDbContext>(options =>
-                options.UseInMemoryDatabase("PDVStore")
+                options.UseInMemoryDatabase(nomeBanco)
                     .ConfigureWarnings(w => w.Ignore(
                         Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning)));
         }

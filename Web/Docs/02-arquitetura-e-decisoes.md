@@ -114,6 +114,17 @@ introduz o **Repository Pattern** e o **Unit of Work** sem mudar o comportamento
 - Serilog grava console + `logs/pdvstore-web-AAAAMMDD.log`, retenção de 14 dias.
 - Vendas/compras/cancelamentos geram logs estruturados com ids e totais, sem senhas.
 
+## 7.1 Upload de arquivos (foto do usuário)
+
+- `POST /api/usuarios/foto` (policy `Administrador`) recebe `multipart/form-data`.
+- Validações: tamanho ≤ 2 MB, extensão em {jpg, jpeg, png, bmp} e **magic bytes**
+  do arquivo (a extensão não é confiável).
+- O nome do arquivo é gerado pelo servidor (`user_{data}_{guid}.png`), evitando
+  path traversal e colisão; a pasta é `wwwroot/uploads/usuarios`.
+- A API serve os arquivos com `app.UseStaticFiles()`; no frontend, o Vite faz
+  proxy de `/uploads` e, em produção, a URL é montada com a origem da API
+  (`utils/download.ts → urlDeArquivo`).
+
 ## 8. Segurança — decisões
 
 | Tema | Decisão |
@@ -149,6 +160,16 @@ introduz o **Repository Pattern** e o **Unit of Work** sem mudar o comportamento
 
 Demais riscos e decisões: ver seção 7 de `01-analise-sistema-referencia.md`.
 
+## 10.1 Testes
+
+| Tipo | Onde | Como roda |
+|---|---|---|
+| Unitários (regras, validadores, máscaras) | `Web/Backend/Tests` | `dotnet test` — 74 testes, provider EF InMemory |
+| Integração da API (HTTP real) | `Web/Backend/Tests/Integration` | `WebApplicationFactory` com banco InMemory isolado por teste — 8 cenários (login, 401, 403 por perfil, venda com/sem caixa, validações em PT-BR, exportação, upload) |
+
+A execução é sequencial (`CollectionBehavior(DisableTestParallelization)`) porque
+os testes de integração configuram a API por variáveis de ambiente.
+
 ## 11. Publicação
 
 - **API**: `dotnet publish Backend/API/PDVStore.API.csproj -c Release`; configurar
@@ -157,3 +178,8 @@ Demais riscos e decisões: ver seção 7 de `01-analise-sistema-referencia.md`.
   URL da API. O CORS da API deve listar apenas a origem do frontend.
 - **Banco**: aplicar migrations/scripts com backup prévio; nunca usar o modo InMemory
   em produção.
+- **CI**: `.github/workflows/ci-web.yml` compila/testa a solução .NET (ubuntu) e faz
+  typecheck + build do frontend React; o workflow do projeto Windows (`ci.yml`)
+  permanece intacto.
+- **Ambiente local**: `Web/docker-compose.yml` sobe apenas o SQL Server 2022
+  (usuário `sa`, senha `Your_password123`, porta 1433) para desenvolvimento.

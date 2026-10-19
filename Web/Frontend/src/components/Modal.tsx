@@ -1,6 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
 import { Icon } from './Icon';
-
 // ============================================================================
 // Modal acessível: fecha com Esc ou clique no overlay, bloqueia scroll do body.
 // ============================================================================
@@ -64,6 +63,8 @@ interface ConfirmDialogProps {
   cancelarLabel?: string;
   perigo?: boolean;
   carregando?: boolean;
+  /** Conteúdo extra exibido no corpo do diálogo (ex.: campo de motivo). */
+  children?: ReactNode;
   onConfirmar: () => void;
   onCancelar: () => void;
 }
@@ -76,6 +77,7 @@ export function ConfirmDialog({
   cancelarLabel = 'Cancelar',
   perigo = false,
   carregando = false,
+  children,
   onConfirmar,
   onCancelar
 }: ConfirmDialogProps) {
@@ -102,6 +104,7 @@ export function ConfirmDialog({
       }
     >
       <p className="confirm-text">{mensagem}</p>
+      {children}
     </Modal>
   );
 }
