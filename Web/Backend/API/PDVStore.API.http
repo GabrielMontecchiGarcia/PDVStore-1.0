@@ -1,6 +1,57 @@
-@PDVStore.API_HostAddress = http://localhost:5261
+@host = http://localhost:5080
+@token = COLE_O_TOKEN_AQUI
 
-GET {{PDVStore.API_HostAddress}}/weatherforecast/
-Accept: application/json
+### Health check
+GET {{host}}/health
 
-###
+### Verificação do banco (conexão + migrations pendentes)
+GET {{host}}/health/database
+
+### Login (Admin / admin123)
+# @name login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "nome": "Admin",
+  "senha": "admin123"
+}
+
+### Usuário autenticado
+GET {{host}}/api/auth/me
+Authorization: Bearer {{token}}
+
+### Produtos ativos
+GET {{host}}/api/produtos?apenasAtivos=true
+Authorization: Bearer {{token}}
+
+### Abrir caixa
+POST {{host}}/api/caixas/abrir
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "valorInicial": 100
+}
+
+### Registrar venda em dinheiro
+POST {{host}}/api/vendas
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "itens": [
+    { "produtoId": 1, "quantidade": 1, "precoUnitario": 18.90 }
+  ],
+  "desconto": 0,
+  "formaPagamento": "Dinheiro",
+  "valorRecebido": 20.00
+}
+
+### Dashboard do mês
+GET {{host}}/api/dashboard
+Authorization: Bearer {{token}}
+
+### Exportar itens mais vendidos em Excel
+GET {{host}}/api/relatorios/exportar/itens-mais-vendidos/excel
+Authorization: Bearer {{token}}

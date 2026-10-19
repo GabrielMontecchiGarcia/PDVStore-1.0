@@ -24,12 +24,27 @@ public static class DependencyInjection
     public static IServiceCollection AddPdvStore(this IServiceCollection services, IConfiguration configuration, TimeZoneInfo timeZone)
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection");
-        if (string.IsNullOrWhiteSpace(connectionString))
-            throw new InvalidOperationException(
-                "Connection string 'DefaultConnection' não configurada. Defina ConnectionStrings__DefaultConnection.");
+        var provider = configuration["Database:Provider"] ?? "SqlServer";
 
-        // Banco de dados — SQL Server, mesmo provider do sistema original.
-        services.AddDbContext<PDVStoreDbContext>(options => options.UseSqlServer(connectionString));
+        if (provider.Equals("InMemory", StringComparison.OrdinalIgnoreCase))
+        {
+            // Modo somente para desenvolvimento/demonstração: permite avaliar a
+            // aplicação sem SQL Server. NÃO deve ser usado em produção, pois não
+            // há persistência entre reinícios nem transações reais.
+            services.AddDbContext<PDVStoreDbContext>(options =>
+                options.UseInMemoryDatabase("PDVStore")
+                    .ConfigureWarnings(w => w.Ignore(
+                        Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning)));
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(connectionString))
+                throw new InvalidOperationException(
+                    "Connection string 'DefaultConnection' não configurada. Defina ConnectionStrings__DefaultConnection.");
+
+            // Banco de dados — SQL Server, mesmo provider do sistema original.
+            services.AddDbContext<PDVStoreDbContext>(options => options.UseSqlServer(connectionString));
+        }
 
         // Infra transversal
         services.AddSingleton(timeZone);

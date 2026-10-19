@@ -1,12 +1,16 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using PDVStore.API.Common;
 using PDVStore.API.Configuration;
 using PDVStore.API.Security;
+using PDVStore.DTOs;
 using PDVStore.Middleware;
 using PDVStore.Repository.Context;
 using Serilog;
@@ -82,6 +86,43 @@ try
 
     builder.Services.AddPdvStore(builder.Configuration, fuso);
 
+    // Respostas de validação padronizadas em PT-BR (mesmo formato do middleware).
+    builder.Services.Configure<ApiBehaviorOptions>(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var detalhes = context.ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .Where(m => !string.IsNullOrWhiteSpace(m))
+                .Distinct()
+                .ToList();
+
+            return new BadRequestObjectResult(new ErroResposta
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Mensagem = "Um ou mais campos estão inválidos.",
+                Detalhes = detalhes,
+                TraceId = context.HttpContext.TraceIdentifier
+            });
+        };
+    });
+
+    // Proteção contra força bruta no login (10 tentativas por minuto por IP).
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+        options.AddPolicy("login", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonimo",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 10,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0
+                }));
+    });
+
     // Autenticação JWT + policies por perfil (matriz de acesso do menu original).
     builder.Services
         .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -154,6 +195,7 @@ try
 
     app.UseAuthentication();
     app.UseAuthorization();
+    app.UseRateLimiter();
 
     app.MapControllers();
     app.MapGet("/health", () => Results.Ok(new
@@ -163,21 +205,91 @@ try
         utc = DateTime.UtcNow
     })).AllowAnonymous();
 
-    // Aplicação opcional das migrations no startup (equivalente ao passo 3 da splash).
-    if (builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))
+    // Verificação de banco equivalente aos passos 2 e 3 da splash original
+    // (conexão + migrations pendentes), sem expor a connection string.
+    app.MapGet("/health/database", async (IServiceProvider services) =>
     {
-        using var scope = app.Services.CreateScope();
+        using var scope = services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PDVStoreDbContext>();
+
         try
         {
-            await db.Database.MigrateAsync();
-            Log.Information("Migrations aplicadas com sucesso.");
+            var conectado = await db.Database.CanConnectAsync();
+            if (!conectado)
+            {
+                return Results.Json(new
+                {
+                    conectado = false,
+                    mensagem = "Não foi possível conectar ao banco de dados."
+                }, statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+
+            int? migrationsPendentes = null;
+            try
+            {
+                migrationsPendentes = (await db.Database.GetPendingMigrationsAsync()).Count();
+            }
+            catch
+            {
+                // Provider sem suporte a migrations (ex.: InMemory/demonstração).
+            }
+
+            return Results.Ok(new
+            {
+                conectado = true,
+                provider = db.Database.ProviderName,
+                migrationsPendentes,
+                mensagem = migrationsPendentes is > 0
+                    ? $"{migrationsPendentes} migração(ões) pendente(s)."
+                    : "Banco de dados atualizado."
+            });
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Falha ao aplicar migrations no startup.");
-            throw;
+            return Results.Json(new
+            {
+                conectado = false,
+                mensagem = "Falha na verificação do banco de dados.",
+                detalhe = ex.GetType().Name
+            }, statusCode: StatusCodes.Status503ServiceUnavailable);
         }
+    }).AllowAnonymous();
+
+    // Aplicação opcional das migrations no startup (equivalente ao passo 3 da splash).
+    var providerBanco = builder.Configuration["Database:Provider"] ?? "SqlServer";
+
+    if (builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))
+    {
+        if (providerBanco.Equals("InMemory", StringComparison.OrdinalIgnoreCase))
+        {
+            Log.Warning("ApplyMigrationsOnStartup ignorado: provider InMemory em uso (somente desenvolvimento).");
+        }
+        else
+        {
+            using var scope = app.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<PDVStoreDbContext>();
+            try
+            {
+                await db.Database.MigrateAsync();
+                Log.Information("Migrations aplicadas com sucesso.");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Falha ao aplicar migrations no startup.");
+                throw;
+            }
+        }
+    }
+
+    // Dados de demonstração apenas no modo InMemory (nunca no SQL Server).
+    if (providerBanco.Equals("InMemory", StringComparison.OrdinalIgnoreCase) &&
+        builder.Configuration.GetValue<bool>("Database:SeedDemoData"))
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PDVStoreDbContext>();
+        await db.Database.EnsureCreatedAsync();
+        await PDVStore.API.Data.DbInitializer.SemearAsync(db);
+        Log.Information("Banco InMemory criado e populado com dados de demonstração.");
     }
 
     Log.Information("PDVStore Web API iniciada.");

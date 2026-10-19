@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using PDVStore.API.Common;
 using PDVStore.API.Security;
 using PDVStore.Application.Interfaces;
@@ -30,6 +31,7 @@ public class AuthController : ControllerBase
     /// <summary>Autentica o usuário e devolve o token JWT + dados do perfil.</summary>
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting("login")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request, CancellationToken ct)
     {

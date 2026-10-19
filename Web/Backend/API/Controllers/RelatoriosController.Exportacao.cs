@@ -24,6 +24,13 @@ public partial class RelatoriosController
         [FromQuery] bool apenasAtivos = true,
         CancellationToken ct = default)
     {
+        // Estoquista só pode exportar o cadastro de produtos (sua única tela).
+        if (!User.IsInRole("Administrador") &&
+            !(User.IsInRole("Estoquista") && tipo.Equals("produtos", StringComparison.OrdinalIgnoreCase)))
+        {
+            return Forbid();
+        }
+
         var (inicioUtc, fimUtc) = _periodo.Converter(inicio, fim);
 
         byte[] arquivo;

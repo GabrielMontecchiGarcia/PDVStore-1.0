@@ -14,7 +14,7 @@ namespace PDVStore.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/relatorios")]
-[Authorize(Policy = "Administrador")]
+[Authorize]
 public partial class RelatoriosController : ControllerBase
 {
     private readonly IRelatorioService _relatorios;
@@ -51,6 +51,7 @@ public partial class RelatoriosController : ControllerBase
 
     /// <summary>Ranking dos produtos mais vendidos no período.</summary>
     [HttpGet("itens-mais-vendidos")]
+    [Authorize(Policy = "Administrador")]
     public async Task<ActionResult<IEnumerable<ItemRelatorioDto>>> ItensMaisVendidos(
         [FromQuery] DateTime? inicio,
         [FromQuery] DateTime? fim,
@@ -64,6 +65,7 @@ public partial class RelatoriosController : ControllerBase
 
     /// <summary>Produtos ativos com estoque igual ou abaixo do mínimo.</summary>
     [HttpGet("estoque-minimo")]
+    [Authorize(Policy = "Administrador")]
     public async Task<ActionResult<IEnumerable<ProdutoDto>>> EstoqueMinimo(CancellationToken ct)
     {
         var produtos = await _relatorios.EstoqueMinimoAsync(ct);
@@ -72,6 +74,7 @@ public partial class RelatoriosController : ControllerBase
 
     /// <summary>Total geral de vendas registradas (indicador do sistema).</summary>
     [HttpGet("total-vendas")]
+    [Authorize(Policy = "Administrador")]
     public async Task<ActionResult<object>> TotalVendas(CancellationToken ct) =>
         Ok(new { total = await _relatorios.TotalVendasAsync(ct) });
 }
