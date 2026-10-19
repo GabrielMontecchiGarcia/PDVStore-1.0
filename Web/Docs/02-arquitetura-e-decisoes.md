@@ -17,7 +17,9 @@ análise do sistema de referência (`01-analise-sistema-referencia.md`).
 ├──────────────────────────────┤
 │ Application                  │  Interfaces, validators, DTO mappings
 ├──────────────────────────────┤
-│ Services                     │  Regras de negócio + integrações + exportação
+│ Services                     │  Regras de negócio (venda, caixa, compras...)
+├──────────────────────────────┤
+│ Infrastructure               │  Integrações externas: mock de pagamento, PDF/Excel
 ├──────────────────────────────┤
 │ Repository                   │  DbContext, repositórios, Unit of Work, migrations
 ├──────────────────────────────┤
@@ -36,6 +38,8 @@ análise do sistema de referência (`01-analise-sistema-referencia.md`).
   dos serviços e os validators.
 - `Services` depende de `Application` (implementa as interfaces), `Repository`,
   `DTOs` e `Domain`.
+- `Infrastructure` depende de `Application`/`Domain`/`DTOs` e hospeda as
+  integrações externas (mock de pagamento bancário e exportação PDF/Excel).
 - `Middleware` depende de `Domain`/`DTOs` e do framework ASP.NET Core.
 - `API` compõe tudo (DI, JWT, CORS, Serilog, Swagger).
 - `Tests` instancia repositórios/serviços reais sobre EF Core InMemory.
@@ -85,8 +89,8 @@ introduz o **Repository Pattern** e o **Unit of Work** sem mudar o comportamento
 | `PDVStoreDbContext` | Scoped | Uma unidade de trabalho por requisição |
 | Repositórios / `IUnitOfWork` | Scoped | Compartilham o mesmo contexto |
 | Serviços de negócio | Scoped | Dependem do contexto/UoW |
-| `PagamentoIntegrator` | Scoped | Dependência da venda |
-| `ExportacaoService` | Scoped | Sem estado entre requisições |
+| `PagamentoIntegrator` (Infrastructure) | Scoped | Dependência da venda |
+| `ExportacaoService` (Infrastructure) | Scoped | Sem estado entre requisições |
 | `JwtTokenService` / `PeriodoService` / `TimeZoneInfo` | Singleton | Configuração imutável |
 
 ## 6. SOLID aplicado

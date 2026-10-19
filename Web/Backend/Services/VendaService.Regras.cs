@@ -45,7 +45,7 @@ public partial class VendaService
             throw new RegraDeNegocioException("O valor total da venda não pode ser negativo.");
 
         if (FormasPagamento.Eh(request.FormaPagamento, FormasPagamento.Dinheiro) &&
-            (!request.ValorRecebido.HasValue || request.ValorRecebido.Value < total))
+            (request.ValorRecebido ?? 0) < total)
         {
             throw new RegraDeNegocioException("Valor recebido é insuficiente para completar a venda.");
         }

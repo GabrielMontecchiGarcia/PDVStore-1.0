@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using PDVStore.Application.Interfaces;
 using PDVStore.Domain.Entities;
 
-namespace PDVStore.Services.Integrations;
+namespace PDVStore.Infrastructure.Integrations;
 
 /// <summary>
 /// Mock de integração bancária (PIX/cartão), preservado do projeto Windows.

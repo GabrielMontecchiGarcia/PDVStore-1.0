@@ -28,6 +28,7 @@
     <ProjectReference Include="..\DTOs\PDVStore.DTOs.csproj" />
     <ProjectReference Include="..\Repository\PDVStore.Repository.csproj" />
     <ProjectReference Include="..\Services\PDVStore.Services.csproj" />
+    <ProjectReference Include="..\Infrastructure\PDVStore.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

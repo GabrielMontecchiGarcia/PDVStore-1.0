@@ -8,8 +8,9 @@ using PDVStore.Repository;
 using PDVStore.Repository.Context;
 using PDVStore.Repository.Interfaces;
 using PDVStore.Repository.Repositories;
+using PDVStore.Infrastructure.Exportacao;
+using PDVStore.Infrastructure.Integrations;
 using PDVStore.Services;
-using PDVStore.Services.Integrations;
 
 namespace PDVStore.API.Configuration;
 

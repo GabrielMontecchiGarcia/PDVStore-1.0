@@ -96,6 +96,48 @@ public partial class VendaServiceTests
     }
 
     [Fact]
+    public async Task Venda_PixMinusculo_DeveSerNormalizadaEGerarTxId()
+    {
+        await using var cenario = CenarioTeste.Criar();
+        var usuarioId = await cenario.CriarOperadorAsync();
+        await cenario.AbrirCaixaAsync(usuarioId);
+        var produto = await cenario.CriarProdutoAsync(preco: 10m);
+
+        var venda = await cenario.Vendas.RegistrarVendaAsync(new VendaRequest
+        {
+            FormaPagamento = "pix",
+            Itens = new List<ItemVendaRequest>
+            {
+                new() { ProdutoId = produto.Id, Quantidade = 1, PrecoUnitario = 10m }
+            }
+        }, usuarioId);
+
+        Assert.Equal(FormasPagamento.Pix, venda.FormaPagamento);
+        Assert.False(string.IsNullOrWhiteSpace(venda.PixTxId));
+    }
+
+    [Fact]
+    public async Task Venda_DinheiroComTotalZero_PodeSerFinalizadaSemValorRecebido()
+    {
+        await using var cenario = CenarioTeste.Criar();
+        var usuarioId = await cenario.CriarOperadorAsync();
+        await cenario.AbrirCaixaAsync(usuarioId);
+        var produto = await cenario.CriarProdutoAsync(preco: 10m);
+
+        var venda = await cenario.Vendas.RegistrarVendaAsync(new VendaRequest
+        {
+            FormaPagamento = FormasPagamento.Dinheiro,
+            Desconto = 10m,
+            Itens = new List<ItemVendaRequest>
+            {
+                new() { ProdutoId = produto.Id, Quantidade = 1, PrecoUnitario = 10m }
+            }
+        }, usuarioId);
+
+        Assert.Equal(0m, venda.ValorTotal);
+    }
+
+    [Fact]
     public async Task CancelarVenda_Inexistente_DeveRetornarFalse()
     {
         await using var cenario = CenarioTeste.Criar();

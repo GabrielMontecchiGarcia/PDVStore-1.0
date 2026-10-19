@@ -56,4 +56,17 @@ public static class FormasPagamento
     /// <summary>Comparação case-insensitive usada nas regras de fiado/PIX/dinheiro.</summary>
     public static bool Eh(string? forma, string esperada) =>
         string.Equals(forma, esperada, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Normaliza a forma recebida para a string canônica gravada no banco
+    /// (ex.: "pix" → "PIX", "cartao credito" → "Cartão Crédito"). Garante
+    /// consistência dos relatórios por forma de pagamento.
+    /// </summary>
+    public static string Normalizar(string? forma)
+    {
+        if (string.IsNullOrWhiteSpace(forma)) return string.Empty;
+
+        var encontrada = Todas.FirstOrDefault(f => Eh(f, forma.Trim()));
+        return encontrada ?? forma.Trim();
+    }
 }

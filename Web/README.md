@@ -47,7 +47,7 @@ Web/
 │   ├── Application/      Interfaces de serviços, DTO mappings, validators
 │   ├── Domain/           Entidades, enums, exceções, máscaras/validações
 │   ├── DTOs/             Contratos de entrada/saída (DTO Pattern)
-│   ├── Infrastructure/   (equivalente à composição de infraestrutura: DI/Serilog na API)
+│   ├── Infrastructure/   Integrações externas: mock de pagamento e exportação PDF/Excel
 │   ├── Middleware/       Tratamento global de exceções
 │   ├── Repository/       DbContext, migrations, repositórios, Unit of Work
 │   ├── Services/         Regras de negócio, integração de pagamento, exportação
@@ -66,10 +66,10 @@ Web/
         └── styles/       Tokens, componentes e layout responsivo
 ```
 
-> Os diretórios `Infrastructure/` e `Repository/` do enunciado foram mapeados para
-> projetos .NET com a mesma responsabilidade. A composição de infraestrutura (DI,
-> Serilog, JWT, CORS) está em `API/Configuration` e `API/Security`, e o acesso a
-> dados em `Repository`. A decisão está detalhada em `Docs/02-arquitetura-e-decisoes.md`.
+> A composição de infraestrutura da aplicação (DI, Serilog, JWT, CORS) está em
+> `API/Configuration` e `API/Security`; as integrações externas (mock de pagamento
+> e exportação PDF/Excel) estão em `Infrastructure`; e o acesso a dados em
+> `Repository`. Detalhes em `Docs/02-arquitetura-e-decisoes.md`.
 
 ---
 

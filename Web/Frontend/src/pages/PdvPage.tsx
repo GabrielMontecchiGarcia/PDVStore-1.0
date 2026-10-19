@@ -118,7 +118,7 @@ export function PdvPage() {
       erro(`Limite de crédito do cliente excedido. Saldo atual: ${formatCurrency(clienteSelecionado.saldoDevedor)}.`);
       return;
     }
-    if (formaPagamento === 'Dinheiro' && (!valorRecebido.trim() || troco < 0)) {
+    if (formaPagamento === 'Dinheiro' && (valorRecebido.trim() ? troco < 0 : carrinho.total > 0)) {
       erro('Valor recebido é insuficiente para completar a venda.');
       return;
     }

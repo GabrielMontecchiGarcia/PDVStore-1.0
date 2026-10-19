@@ -8,7 +8,7 @@ using PDVStore.Repository.Context;
 using PDVStore.Repository.Interfaces;
 using PDVStore.Repository.Repositories;
 using PDVStore.Services;
-using PDVStore.Services.Integrations;
+using PDVStore.Infrastructure.Integrations;
 
 namespace PDVStore.Tests.Infrastructure;
 

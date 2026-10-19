@@ -39,7 +39,8 @@ public partial class VendaService
             }).ToList();
 
             decimal total = itens.Sum(i => i.Subtotal) - request.Desconto;
-            bool fiado = FormasPagamento.Eh(request.FormaPagamento, FormasPagamento.Fiado);
+            var formaPagamento = FormasPagamento.Normalizar(request.FormaPagamento);
+            bool fiado = FormasPagamento.Eh(formaPagamento, FormasPagamento.Fiado);
 
             // 0.1 Fiado: cliente ativo e limite de crédito.
             var clienteFiado = fiado ? await ValidarFiadoAsync(request.ClienteId, total, ct) : null;
@@ -57,7 +58,7 @@ public partial class VendaService
                 ClienteId = request.ClienteId,
                 DataVenda = DateTime.UtcNow,
                 Desconto = request.Desconto,
-                FormaPagamento = request.FormaPagamento,
+                FormaPagamento = formaPagamento,
                 ValorTotal = total,
                 Status = StatusVenda.Concluida,
                 Itens = itens

@@ -5,7 +5,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
-namespace PDVStore.Services;
+namespace PDVStore.Infrastructure.Exportacao;
 
 /// <summary>
 /// Exportação de relatórios em Excel (ClosedXML) e PDF (QuestPDF).

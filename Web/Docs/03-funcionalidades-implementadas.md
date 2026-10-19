@@ -44,7 +44,7 @@ de pagamento, troco, fiado e recibo.
 
 **Arquivos**
 - `Backend/Services/VendaService.cs`, `VendaService.Registro.cs`, `.Regras.cs`, `.Consultas.cs`
-- `Backend/Services/Integrations/PagamentoIntegrator.cs`
+- `Backend/Infrastructure/Integrations/PagamentoIntegrator.cs`
 - `Backend/API/Controllers/VendasController.cs`
 - `Backend/Application/Validators/OperacaoValidators.cs`
 - `Frontend/src/pages/PdvPage.tsx`, `hooks/useCarrinho.ts`,

@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PDVStore.API", "API\PDVStor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PDVStore.Tests", "Tests\PDVStore.Tests.csproj", "{3EA70F95-424F-467D-AEDC-60698C737805}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PDVStore.Infrastructure", "Infrastructure\PDVStore.Infrastructure.csproj", "{B6BA9396-B4B1-44B8-8EE6-58A6E90EF539}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -60,5 +62,9 @@ Global
 		{3EA70F95-424F-467D-AEDC-60698C737805}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3EA70F95-424F-467D-AEDC-60698C737805}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3EA70F95-424F-467D-AEDC-60698C737805}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B6BA9396-B4B1-44B8-8EE6-58A6E90EF539}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B6BA9396-B4B1-44B8-8EE6-58A6E90EF539}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B6BA9396-B4B1-44B8-8EE6-58A6E90EF539}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B6BA9396-B4B1-44B8-8EE6-58A6E90EF539}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
